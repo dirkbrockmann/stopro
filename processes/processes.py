@@ -115,7 +115,7 @@ def ornsteinuhlenbeck(T,dt,theta=1,sigma=1,dimension=1,samples=1,stationary=Fals
         x[:,0]=0;
         
         if stationary:
-            x[:,0] = np.random.randn(target_dimension)*sigma/np.sqrt(2*theta)
+            x[:,0] = S @ np.random.randn(dimension)*sigma/np.sqrt(2*theta)
         
         for j in range(steps):
             x[:,j+1] = x[:,j] + (-theta) * dt * x[:,j]+ sigma * sqdt * dw[:,j];
