@@ -1,14 +1,15 @@
-Hello this is a section
-=======================
+# Processes
 
-Hello this is a subsection
---------------------------
+A python package for generating common multivariate stochastic processes:
 
-These are inline
-![x=1](https://latex.codecogs.com/png.latex?x%3D1 "x=1") and
-![y=2](https://latex.codecogs.com/png.latex?y%3D2 "y=2") formulates and
-here goes a display formula
+1. the Wiener process
+2. the Ornstein-Uhlenbeck process
+3. the exponential Ornstein-Uhlenbeck processes.
 
-![W(t)=\\int dW(s)](https://latex.codecogs.com/png.latex?W%28t%29%3D%5Cint%20dW%28s%29 "W(t)=\int dW(s)")
+You can find documentation and examples in the Jupiter Notebook that comes with the package.
 
- and now we will see how this gets transformed.
+
+### Download
+
+### Install 
+
