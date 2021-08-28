@@ -10,5 +10,5 @@ You can find documentation and examples in the [Jupyter notebook documentation_a
 
 ## Download & Install
 
-  git clone git@github.com:dirkbrockmann/processes.git
-  pip install ./processes
+    git clone git@github.com:dirkbrockmann/processes.git
+    pip install ./processes
