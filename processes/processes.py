@@ -54,18 +54,30 @@ def wiener(T,dt,dimension=1,samples=1,**kwargs):
         
     return {'covariance':covariance,'steps':steps,'dt':dt,'t':t,'X':X}
 
-def ornsteinuhlenbeck(T,dt,theta=1,sigma=1,dimension=1,samples=1,stationary=False,**kwargs):
+def ornsteinuhlenbeck(T,dt,variability=1,timescale=1,dimension=1,samples=1,stationary=False,**kwargs):
     
-    """Generates a multivariate Ornstein-Uhlenbeck Process X(t)
+    """Generates realizations of the multivariate Ornstein-Uhlenbeck Process X(t)
 
     The OUP is the solution to the SDE dX = -theta X dt + sigma dW, where W is the Wiener Process
     
-    Returns realizations on the
-    time interval [0,T] at increments dt.
+    Returns realizations on the time interval [0,T] at increments dt.
+    
+    Parameters:
+    
+    - dimension: the dimensionality of the process, defaults to 1
+    - samples: number of realizations, defaults to 1
+    - variability: (standard deviation), defaults to 1
+    - timescale: (autocorrelation time of the process), defaults to 1 
+    - stationary: if TRUE the processes are initialized so they are stationary, if FALSE (default) all realizations start at the origin.
+    
+    The latter are related to the standard parameters theta and sigma by
+    
+    timescale = 1 / theta
+    variability = sigma sqrt(2/timescale)
     
     optional arguments:
     
-    - stationary: if set to TRUE the processes are initialized to they are stationarly, of FALSE all realizations start at the origin.
+    - instead of timescale and variability you can specify the standard parameters theta (force constant) and sigma (noise magnitude), in this case variability and timescale are overridden.
     
     - steps (specifies number of time steps instead of the dt increment, 
       in this case dt is set to dt = T / steps)
@@ -77,7 +89,16 @@ def ornsteinuhlenbeck(T,dt,theta=1,sigma=1,dimension=1,samples=1,stationary=Fals
     you can either provide a covariance matrix OR a mixing_matrix, but not both
     
     """
-
+    
+    if 'theta' in kwargs or 'sigma' in kwargs:
+        theta = kwargs["theta"] if 'theta' in kwargs else 1
+        sigma = kwargs["sigma"] if 'sigma' in kwargs else 1
+        timescale = 1 / theta
+        variability = sigma / np.sqrt (2 * theta)
+    else:
+        theta = 1 / timescale;
+        sigma = variability * np.sqrt (2 / timescale)
+        
     steps = int( T / dt );
     covariance = np.identity(dimension)
     S = covariance;
@@ -122,17 +143,25 @@ def ornsteinuhlenbeck(T,dt,theta=1,sigma=1,dimension=1,samples=1,stationary=Fals
         
         X[i]=x;
         
-    return {'theta':theta,'sigma':sigma,'covariance':covariance,'steps':steps,'dt':dt,'t':t,'X':X}
+    return {'variability':variability,'timescale':timescale,'noise_covariance':covariance,'steps':steps,'dt':dt,'t':t,'X':X}
     
-def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,dimension=1,samples=1,stationary=False,**kwargs):
-    """Generates a non-negative, multivariate stochastic process X(t) that is the exponential of an Ornstein-Uhlenbeck Process Z(t) like so X(t) = A exp( B Z(t) ). The constants A, B are chosen such that the process X(t) has the specified mean (default 1) and coefficient of variation (default 1).
+def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,timescale=1,dimension=1,samples=1,stationary=False,**kwargs):
+  
+    """Generates a non-negative, multivariate stochastic process X(t) that is the exponential of an Ornstein-Uhlenbeck Process Z(t) like so X(t) = A exp( B Z(t) ). The constants A, B are chosen such that the process X(t) has the specified mean (default 1) and coefficient of variation (default 1). The Ornstein Uhlenbeck process chosen here is the solution to dZ = - Z dt + sqrt(2)*dW
     
     Returns realizations on the
     time interval [0,T] at increments dt.
     
-    optional arguments:
+    Parameters:
     
-    - stationary: if set to TRUE the processes are initialized to they are stationarly, of FALSE all realizations start at the origin.
+    - timescale: timescale of the process (correlation time)
+    - dimension: the dimension of the process
+    - samples: number of realizations generated
+    - mean: The mean values of the process, defaults to 1
+    - coeff_var: coefficient of variation, defaults to 1
+    - stationary: if set to TRUE the processes are initialized so they are stationary, if FALSE all realizations start at the origin.
+    
+    Optional parameters:
     
     - steps (specifies number of time steps instead of the dt increment, 
       in this case dt is set to dt = T / steps)
@@ -146,7 +175,11 @@ def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,dimension=1,samples=1,
     """
     A =  mean / np.sqrt(1+coeff_var**2); B = np.sqrt(np.log(1+coeff_var**2))
 
-    res = ornsteinuhlenbeck(T,dt,dimension=dimension,samples=samples,stationary=stationary,a=1,b=np.sqrt(2),**kwargs);
+    res = ornsteinuhlenbeck(T,dt,
+                            timescale=timescale,
+                            dimension=dimension,
+                            samples=samples,
+                            stationary=stationary,**kwargs);
 
     for i in range(len(res["X"])):
         res["X"][i]=A*np.exp(B*res["X"][i]);           
