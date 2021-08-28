@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Contains functions simulating the stochastic processes.
+"""
+
 import numpy as np
 
 # Wiener Process
@@ -19,17 +24,24 @@ def wiener(T,dt,dimension=1,samples=1,**kwargs):
     
     you can either provide a covariance matrix OR a mixing_matrix, but not both
     """
+    # I like docstrings to be in numpy format. See here: https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html
 
-    steps = int( T / dt );
+    steps = int( T / dt )
     covariance = np.identity(dimension)
-    S = covariance;
+    S = covariance
     
     assert not ('covariance' in kwargs and 'mixing_matrix' in kwargs), "you cannot specify both, covariance AND mixing_matrix"
     
+    # Das hier besser nicht machen. Lieber 'steps' als
+    # Parameter definieren mit default value None.
+    # Dann
+    # if steps is not None:
+    # und den code dahinter
     if 'steps' in kwargs:    
         steps = kwargs["steps"]
-        dt = T/steps;
+        dt = T/steps
 
+    # hier genauso
     if 'covariance' in kwargs:    
         covariance = kwargs["covariance"]
         (n,m) = np.shape(covariance)
@@ -38,6 +50,7 @@ def wiener(T,dt,dimension=1,samples=1,**kwargs):
         dimension = n
         S = np.linalg.cholesky(covariance)
 
+    # hier auch
     elif 'mixing_matrix' in kwargs:
         S = kwargs["mixing_matrix"]
         (n,m) = np.shape(S)
@@ -47,11 +60,12 @@ def wiener(T,dt,dimension=1,samples=1,**kwargs):
     t = np.linspace(0,T,steps+1); X = {}
     
     for i in range(samples):
-        dw = S @ np.random.randn(dimension,steps+1);
-        dw[:,0]=0;
-        W = np.sqrt(dt)*np.cumsum(dw,axis=1);
-        X[i]=W;
-        
+        dw = S @ np.random.randn(dimension,steps+1)
+        dw[:,0] = 0
+        W = np.sqrt(dt)*np.cumsum(dw,axis=1)
+        X[i] = W
+
+    # das hier ist eher unueblich (dict returnen) aber kann man auch machen
     return {'covariance':covariance,'steps':steps,'dt':dt,'t':t,'X':X}
 
 def ornsteinuhlenbeck(T,dt,variability=1,timescale=1,dimension=1,samples=1,stationary=False,**kwargs):
@@ -90,6 +104,8 @@ def ornsteinuhlenbeck(T,dt,variability=1,timescale=1,dimension=1,samples=1,stati
     
     """
     
+    # hier auch eher die parameter oben in der funktionsdefinition
+    # spezifizieren, dann wieder if theta is None
     if 'theta' in kwargs or 'sigma' in kwargs:
         theta = kwargs["theta"] if 'theta' in kwargs else 1
         sigma = kwargs["sigma"] if 'sigma' in kwargs else 1
@@ -126,23 +142,25 @@ def ornsteinuhlenbeck(T,dt,variability=1,timescale=1,dimension=1,samples=1,stati
         dimension = m
         target_dimension = n
         
-    sqdt = np.sqrt(dt);
-    t = np.linspace(0,T,steps+1); X = {}
+    sqdt = np.sqrt(dt)
+    t = np.linspace(0,T,steps+1)
+    X = {}
     
     
     for i in range(samples):        
-        x = np.zeros([target_dimension,steps+1]);
-        dw = S @ np.random.randn(dimension, steps+1);
-        x[:,0]=0;
+        x = np.zeros([target_dimension,steps+1])
+        dw = S @ np.random.randn(dimension, steps+1)
+        x[:,0]=0
         
         if stationary:
             x[:,0] = S @ np.random.randn(dimension)*sigma/np.sqrt(2*theta)
         
         for j in range(steps):
-            x[:,j+1] = x[:,j] + (-theta) * dt * x[:,j]+ sigma * sqdt * dw[:,j];
+            x[:,j+1] = x[:,j] + (-theta) * dt * x[:,j]+ sigma * sqdt * dw[:,j]
         
-        X[i]=x;
+        X[i]=x
         
+    # das hier ist eher unueblich (dict returnen) aber kann man auch machen
     return {'variability':variability,'timescale':timescale,'noise_covariance':covariance,'steps':steps,'dt':dt,'t':t,'X':X}
     
 def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,timescale=1,dimension=1,samples=1,stationary=False,**kwargs):
@@ -179,18 +197,13 @@ def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,timescale=1,dimension=
                             timescale=timescale,
                             dimension=dimension,
                             samples=samples,
-                            stationary=stationary,**kwargs);
+                            stationary=stationary,**kwargs)
 
     for i in range(len(res["X"])):
-        res["X"][i]=A*np.exp(B*res["X"][i]);           
+        res["X"][i]=A*np.exp(B*res["X"][i])
     
-    res["mean"]=mean;
-    res["coeff_var"]=coeff_var;
+    res["mean"] = mean
+    res["coeff_var"] = coeff_var
 
     return res
 
-    
-    
-
-
-           
