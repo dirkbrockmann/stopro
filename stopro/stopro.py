@@ -111,6 +111,8 @@ def ornsteinuhlenbeck(T,
                       covariance_matrix=None,
                       mixing_matrix=None,
                       steps=None,
+                      theta=None,
+                      sigma=None,
                       ):
 
     r"""
@@ -144,7 +146,10 @@ def ornsteinuhlenbeck(T,
         will be equal to the ``target_dimension`` of the resulting Wiener process.
     samples : int, default = 1
         The number of samples generated
-    stationary : bool, default = False
+    initial_conditions : str or numpy.ndarray, default = None
+        If ``None``, process will be initiated at X = 0.
+        If ``'stationary'``, initial conditions will be drawn from stationary distribution.
+        Else, process will be initiated as ``X[:,0] = initial_conditions``.
         If ``True`` the processes are initialized so they are stationary,
     theta : float, default = None
         Defines the timescale of the process as ``timescale = 1/theta``.
@@ -195,6 +200,12 @@ def ornsteinuhlenbeck(T,
     You can either provide a covariance matrix OR a mixing_matrix, but not both.
     """
 
+    if isinstance(initial_condition, str) and initial_condition == 'stationary':
+        pass # make stationary
+    elif initital_condition is None:
+        pass # make zero
+
+
     if theta is not None or sigma is not None:
         if theta is None:
             theta = 1
@@ -235,6 +246,8 @@ def ornsteinuhlenbeck(T,
     sqdt = np.sqrt(dt)
     t = np.linspace(0,T,steps+1)
     X = np.zeros((samples,target_dimension,steps+1))
+
+    X[0,:,0] = initial_condition
 
 
     for i in range(samples):
