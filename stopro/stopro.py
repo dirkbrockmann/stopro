@@ -104,8 +104,8 @@ def ornsteinuhlenbeck(T,
                       timescale=1,
                       dimension=1,
                       samples=1,
-                      stationary=False,
-                      covariance_matrix=None,
+                      initial_condition=None,
+                      covariance=None,
                       mixing_matrix=None,
                       steps=None,
                       theta=None,
@@ -143,11 +143,10 @@ def ornsteinuhlenbeck(T,
         will be equal to the ``target_dimension`` of the resulting Wiener process.
     samples : int, default = 1
         The number of samples generated
-    initial_conditions : str or numpy.ndarray, default = None
-        If ``None``, process will be initiated at X = 0.
-        If ``'stationary'``, initial conditions will be drawn from stationary distribution.
-        Else, process will be initiated as ``X[:,0] = initial_conditions``.
-        If ``True`` the processes are initialized so they are stationary,
+    initial_condition : str or numpy.ndarray, default = None
+        If ``initial_condition is None``, process will be initiated at X = 0.
+        If ``initial_condition == 'stationary'``, initial conditions will be drawn from stationary distribution.
+        Else, process will be initiated as ``X[:,0] = initial_condition``.
     theta : float, default = None
         Defines the timescale of the process as ``timescale = 1/theta``.
         Overrides ``timescale`` and ``variability`` if defined.
@@ -197,11 +196,7 @@ def ornsteinuhlenbeck(T,
     You can either provide a covariance matrix OR a mixing_matrix, but not both.
     """
 
-    if isinstance(initial_condition, str) and initial_condition == 'stationary':
-        pass # make stationary
-    elif initital_condition is None:
-        pass # make zero
-
+    assert not ( (covariance is not None) and (mixing_matrix is not None)), "you cannot specify both, covariance AND mixing_matrix"
 
     if theta is not None or sigma is not None:
         if theta is None:
@@ -222,7 +217,6 @@ def ornsteinuhlenbeck(T,
     if steps is not None:
         dt = T/steps
 
-    assert not ( (covariance is not None) and (mixing_matrix is not None)), "you cannot specify both, covariance AND mixing_matrix"
 
     if covariance is not None:
         covariance = covariance
@@ -248,16 +242,23 @@ def ornsteinuhlenbeck(T,
     t = np.linspace(0,T,steps+1)
     X = np.zeros((samples,target_dimension,steps+1))
 
-    X[0,:,0] = initial_condition
-
+    stationary = False
+    if isinstance(initial_condition, str):
+        if initial_condition.lower() == 'stationary':
+            stationary = True
+        else:
+            raise ValueError(f"unknown initial condition '{stationary}'")
+    elif initial_condition is None:
+        initial_condition = np.zeros(target_dimension)
 
     for i in range(samples):
         x = np.zeros((target_dimension,steps+1))
         dw = S @ np.random.randn(dimension, steps+1)
-        x[:,0] = 0
 
         if stationary:
             x[:,0] = S @ np.random.randn(dimension)*sigma/np.sqrt(2*theta)
+        else:
+            x[:,0] = initial_condition
 
         for j in range(steps):
             x[:,j+1] = x[:,j] + (-theta) * dt * x[:,j]+ sigma * sqdt * dw[:,j]
@@ -274,7 +275,7 @@ def ornsteinuhlenbeck(T,
             'X': X
             }
 
-def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,**kwargs):
+def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,initial_condition=None,ou_initial_condition=None,**kwargs):
     r"""
     Generates a non-negative, multivariate stochastic process
     :math:`X(t)` that is the exponential of an Ornstein-Uhlenbeck
@@ -302,6 +303,15 @@ def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,**kwargs):
         Desired mean of the resulting realizations.
     coeff_var : float, default = 1
         Desired coefficient of variation of the resulting realizations.
+    initial_condition : str or numpy.ndarray, default = None
+        If ``initial_condition is None``, process will be initiated at X = A.
+        If ``initial_condition == 'stationary'``, initial conditions will be drawn from stationary distribution.
+        Else, process will be initiated as ``X[:,0] = initial_condition``.
+    ou_initial_condition : str or numpy.ndarray, default = None
+        If ``initial_condition is None``, process will be initiated at Z = 0.
+        If ``initial_condition == 'stationary'``, initial conditions will be drawn from stationary distribution.
+        Else, process will be initiated as ``Z[:,0] = ou_initial_condition``.
+        Will override ``initial_condition`` if provided.
     **kwargs
         Additional keyword arguments that will be passed
         to :func:`stopro.stopro.ornsteinuhlenbeck`.
@@ -334,7 +344,18 @@ def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,**kwargs):
     A = mean / np.sqrt(1+coeff_var**2)
     B = np.sqrt(np.log(1+coeff_var**2))
 
-    res = ornsteinuhlenbeck(T,dt,**kwargs)
+    assert( not ((initial_condition is not None) and (ou_initial_condition is not None)), "please provide either initial conditions in OU space OR exponential OU space, not both")
+
+    if ou_initial_condition is None and initial_condition is not None:
+        if initial_condition == 'stationary':
+            ou_initial_condition = 'stationary'
+        else:
+            if not hasattr(initial_condition,'__len__'):
+                initial_condition = [initial_condition]
+
+            ou_initial_condition = 1/B * np.log(np.array(initial_condition)/A)
+
+    res = ornsteinuhlenbeck(T,dt,initial_condition=ou_initial_condition,**kwargs)
 
     res["X"] = A*np.exp(B*res["X"])
 
