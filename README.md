@@ -1,4 +1,4 @@
-# Processes
+# stopro - Elementary Stochastic Processes
 
 A python package for generating common multivariate stochastic processes:
 

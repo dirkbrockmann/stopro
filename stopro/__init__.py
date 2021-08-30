@@ -14,7 +14,7 @@ from .metadata import (
         __status__,
     )
 
-from .processes import (
+from .stopro import (
         wiener,
         ornsteinuhlenbeck,
         exponential_ornsteinuhlenbeck
