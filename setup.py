@@ -4,20 +4,15 @@ import os
 import sys
 
 # get __version__, __author__, and __email__
-exec(open("./processes/metadata.py").read())
+exec(open("./stopro/metadata.py").read())
 
-# I would rename the package, because "processes" is already taken by some other package on PyPI.
-# Which means you cannot publish it on PyPI in this state. Which means
-#
-#    pip install processes
-#
-# won't work.
+
 setup(
-    name='processes',
+    name='stopro',
     version=__version__,
     author=__author__,
     author_email=__email__,
-    url='https://github.com/dirkbrockmann/processes',
+    url='https://github.com/dirkbrockmann/stopro',
     license=__license__,
     description="Generates realizations of elementary, multivariate stochastic processes",
     long_description='',
@@ -34,10 +29,10 @@ setup(
                  'Programming Language :: Python :: 3.8',
                  ],
     project_urls={
-        'Documentation': 'http://processes.readthedocs.io',
-        'Contributing Statement': 'https://github.com/dirkbrockmann/processes/blob/master/CONTRIBUTING.md',
-        'Bug Reports': 'https://github.com/dirkbrockmann/processes/issues',
-        'Source': 'https://github.com/dirkbrockmann/processes/',
+        'Documentation': 'http://stopro.readthedocs.io',
+        'Contributing Statement': 'https://github.com/dirkbrockmann/stopro/blob/master/CONTRIBUTING.md',
+        'Bug Reports': 'https://github.com/dirkbrockmann/stopro/issues',
+        'Source': 'https://github.com/dirkbrockmann/stopro/',
         'PyPI': 'https://pypi.org/project/komoog/',
     },
     include_package_data=True,
