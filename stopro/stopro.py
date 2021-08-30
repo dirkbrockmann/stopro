@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Contains functions simulating the stochastic processes.
+Contains functions simulating elementary stochastic processes.
 """
 
 import numpy as np
-
-# Wiener Process
 
 def wiener(T,dt,dimension=1,samples=1,covariance=None,mixing_matrix=None):
     """
@@ -60,8 +58,7 @@ def wiener(T,dt,dimension=1,samples=1,covariance=None,mixing_matrix=None):
                 'covariance': 'covariance matrix, numpy.ndarray of shape (target_dimension, target_dimension)'
             }
     """
-
-    steps = int (T / dt)
+    steps = int(T / dt)
 
     target_dimension = dimension
 
@@ -235,8 +232,12 @@ def ornsteinuhlenbeck(T,
         dimension = n
         target_dimension = n
         S = np.linalg.cholesky(covariance)
+    else:
+        covariance = np.identity(dimension)
+        S = covariance
+        target_dimension = dimension
 
-    elif mixing_matrix is not None:
+    if mixing_matrix is not None:
         S = mixing_matrix
         (n,m) = np.shape(S)
         covariance = S @ S.T
