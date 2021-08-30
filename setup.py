@@ -19,7 +19,7 @@ setup(
     author_email=__email__,
     url='https://github.com/dirkbrockmann/processes',
     license=__license__,
-    description="Generates realizations of common, multivariate stochastic processes",
+    description="Generates realizations of elementary, multivariate stochastic processes",
     long_description='',
     packages=setuptools.find_packages(),
     python_requires='>=3.6',

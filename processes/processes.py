@@ -7,52 +7,61 @@ import numpy as np
 
 # Wiener Process
 
-def wiener(T,dt,dimension=1,samples=1,**kwargs):
-    """Generates a multivariate Wiener Process
+def wiener(T,dt,dimension=1,samples=1,covariance=None,mixing_matrix=None):
+    """Generates realizations of a multivariate Wiener process
 
-    Returns realizations on the
-    time interval [0,T] at increments of size dt.
+    Returns realizations (samples) on the time interval [0,T] at increments of size dt.
+    You can specify the number of realizations, the covariance in case the processes
+    is multidimensional
     
-    optional arguments:
+    Parameters
+    ----------
+    dimension : int
+        The dimension of the process
+
+    samples : int
+        The number of samples generated
+
+    covariance: N x N matrix
+        In case of a multivariate process the covariance matrix (N is the number of components), 
+        which must be positive semidefinite. If specified overrides dimension parameter.
+
+    mixing_matrix: N x M matrix
+        This matrix, let's call it S with elements S_ij is used to generate an 
+        N-dimensional covariant Wiener processes W (with components W_i, i=1,...,N) by superposition
+        of independent components V_j of an M-dimensional Wiener process V : W_i = sum_j S_ij * V_j.
+        The covariance of W is given by S*S^T.
+        Specifying the mixing matrix overrides the covariance parameter.
     
-    - steps (specifies number of time steps instead of dt increment, 
-      in this case dt is set to dt = T / steps)
-    
-    - covariance = COV where COV is a real, square, positive definite covariance matrix.
-    
-    - mixing_matrix = S where S is an NxM matrix which is used to generate N Wiener processes W by superposition of M independent Wiener processes V, so W = S x V. 
-    
-    you can either provide a covariance matrix OR a mixing_matrix, but not both
+    Returns
+    -------
+    dict
+        {
+            'X': dictionary of the realizations so that e.g. X[i][j] is component j of realization i
+            't': array of times
+            'dt': time increment
+            'steps': steps,
+            'covariance': covariance matrix
+        }
+            
     """
     # I like docstrings to be in numpy format. See here: https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html
+   
+    steps = int (T / dt)
 
-    steps = int( T / dt )
-    covariance = np.identity(dimension)
-    S = covariance
-    
-    assert not ('covariance' in kwargs and 'mixing_matrix' in kwargs), "you cannot specify both, covariance AND mixing_matrix"
-    
-    # Das hier besser nicht machen. Lieber 'steps' als
-    # Parameter definieren mit default value None.
-    # Dann
-    # if steps is not None:
-    # und den code dahinter
-    if 'steps' in kwargs:    
-        steps = kwargs["steps"]
-        dt = T/steps
-
-    # hier genauso
-    if 'covariance' in kwargs:    
-        covariance = kwargs["covariance"]
+    if covariance is not None:
+        covariance = np.array(covariance)    
         (n,m) = np.shape(covariance)
         assert n==m, "covariance must square"
         assert np.all(np.linalg.eigvals(covariance) >= 0), "covariance is not positive definite"
         dimension = n
         S = np.linalg.cholesky(covariance)
-
-    # hier auch
-    elif 'mixing_matrix' in kwargs:
-        S = kwargs["mixing_matrix"]
+    else:
+        covariance = np.identity(dimension)
+        S = covariance
+        
+    if mixing_matrix is not None:
+        S = np.array(mixing_matrix)
         (n,m) = np.shape(S)
         covariance = S @ S.T
         dimension = m
@@ -65,8 +74,13 @@ def wiener(T,dt,dimension=1,samples=1,**kwargs):
         W = np.sqrt(dt)*np.cumsum(dw,axis=1)
         X[i] = W
 
-    # das hier ist eher unueblich (dict returnen) aber kann man auch machen
-    return {'covariance':covariance,'steps':steps,'dt':dt,'t':t,'X':X}
+    return {
+        'X':X,
+        't':t,
+        'dt':dt,
+        'steps':steps,
+        'covariance':covariance
+    }
 
 def ornsteinuhlenbeck(T,dt,variability=1,timescale=1,dimension=1,samples=1,stationary=False,**kwargs):
     
