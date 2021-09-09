@@ -17,5 +17,6 @@ from .metadata import (
 from .stopro import (
         wiener,
         ornsteinuhlenbeck,
-        exponential_ornsteinuhlenbeck
+        exponential_ornsteinuhlenbeck,
+        multiplicative_white_noise
     )
