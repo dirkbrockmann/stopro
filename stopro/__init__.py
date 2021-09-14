@@ -18,5 +18,6 @@ from .stopro import (
         wiener,
         ornsteinuhlenbeck,
         exponential_ornsteinuhlenbeck,
-        multiplicative_white_noise
+        multiplicative_white_noise,
+        noisy_logistic_growth
     )
