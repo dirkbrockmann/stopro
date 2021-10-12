@@ -4,7 +4,10 @@ A python package for generating common multivariate stochastic processes:
 
 1. the Wiener process
 2. the Ornstein-Uhlenbeck process
-3. the exponential Ornstein-Uhlenbeck processes.
+3. the exponential Ornstein-Uhlenbeck processes
+4. Multiplicative White Noise
+5. Noisy Logistic Growth
+6. Geometric Brownian Motion
 
 You can find documentation and examples in the [Jupyter notebook documentation_and_examples.ipynb](https://github.com/dirkbrockmann/processes/blob/main/documentation_and_examples.ipynb) that comes with the package. 
 
