@@ -19,5 +19,6 @@ from .stopro import (
         ornsteinuhlenbeck,
         exponential_ornsteinuhlenbeck,
         multiplicative_white_noise,
-        noisy_logistic_growth
+        noisy_logistic_growth,
+        geometric_brownian_motion,
     )
