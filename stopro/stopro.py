@@ -2,12 +2,15 @@
 """
 Contains functions simulating elementary stochastic processes.
 """
-
+# add brownian bridge
+# fehler in colored dings
+# fehler in colored geometric borwnian motion
 import numpy as np
 
-def wiener(T,dt,dimension=1,samples=1,covariance=None,mixing_matrix=None,gap=1):
+def wiener(T,dt,gap=1,N=1,samples=1,covariance=None,mixing_matrix=None,steps=None):
+    
     """
-    Generates realizations of a multivariate Wiener process.
+    Generates realizations of a multivariate Wiener Wurst process.
 
     Returns realizations (samples) on the time interval [0,T] at increments of size dt.
     You can specify the number of realizations, as well as the covariance or
@@ -16,31 +19,31 @@ def wiener(T,dt,dimension=1,samples=1,covariance=None,mixing_matrix=None,gap=1):
     Parameters
     ----------
     T : float
-        The upper bound of the stochastic integral.
+        Time interval.
     dt : float
-        size of the time step
-    dimension : int, default = 1
+        Time step size. Will be overridden if ``steps`` is provided instead.
+    gap : int, default = 1
+        Gap between saved (returned) points.
+    N : int, default = 1
         The dimension of the stochastic process.
-        If no mixing matrix is provided, ``dimension``
-        will be equal to the ``target_dimension`` of the resulting Wiener process.
     samples : int, default = 1
-        The number of samples generated
-    covariance : numpy.ndarray of shape (``dimension``, ``dimension``), default = None
-        In case of a multivariate process the covariance matrix,
-        which must be positive semidefinite. If specified, overrides the ``dimension`` parameter.
-        The resulting realizations will have ``target_dimension = dimension``.
-    mixing_matrix : numpy.ndarray of shape (``target_dimension``, ``dimension``), default = None
-        This matrix, let's call it S with elements :math:`S_{ij}` is used to generate an
-        N-dimensional covariant Wiener processes W (with components :math`W_i, i=1,...,N`) by superposition
-        of independent components :math:`V_j` of an M-dimensional Wiener process V
+        The number realizations.
+    covariance : numpy.ndarray of shape (N, N), default = None
+        In case of a multivariate process the covariance matrix
+        which must be positive semidefinite. If specified, overrides the ``N`` parameter with N.
+    mixing_matrix : numpy.ndarray of shape (N, M), default = None
+        This matrix :math:`S_{ij}` is used to generate an
+        N-dimensional covariant Wiener process (with components :math`W_i, i=1,...,N`) by superposition
+        of independent components :math:`V_j, j=1,...,M` of an M-dimensional Wiener process V.
 
-        .. math::
+    .. math::
 
-            W_i = \sum_j S_{ij} \cdot V_j.
+        W_i = \sum_j S_{ij} \cdot V_j.
 
         The covariance of W is given by :math:`S \cdot S^T`.
-        Specifying the mixing matrix overrides the covariance parameter and the dimension parameter.
-
+        If specified, overrides the covariance parameter and the dimension parameter.
+    steps : int, default = None
+        If provided, defines a number of time steps. Overrides `dt` parameter.
 
     Returns
     -------
@@ -48,49 +51,58 @@ def wiener(T,dt,dimension=1,samples=1,covariance=None,mixing_matrix=None,gap=1):
 
     Result dictionary containing the following entries
 
-        .. code:: python
+    .. code:: python
 
-            {
-                'X': 'numpy.ndarray of shape (samples, target_dimension, steps+1) such that  X[i,j,k] is time point k of component j of realization i',
-                't': 'array of time points',
-                'dt': 'time increment',
-                'steps': 'numper of time steps',
-                'covariance': 'covariance matrix, numpy.ndarray of shape (target_dimension, target_dimension)'
-            }
+        {
+            'X': 'numpy.ndarray of shape (samples, N, steps+1) such that  X[i,j,k] is time point k of component j of realization i',
+            't': 'numpy.ndarray of shape (samples,steps+1) such that t[i,k] is time point k of realization i',
+            'dt': 'float, time increment',
+            'steps': 'int, number of time steps',
+            'N': 'int, number of components of process',
+            'savedsteps': 'int, number of saved points in X',
+            'gap': 'int, gap between saved steps',
+            'covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+        }
+    
+    
+    
     """
-    steps = int(T / dt)
-
-    target_dimension = dimension
+    
+    if steps is not None:
+        dt = T/steps
+    else:
+        steps = int(T / dt)
 
     if covariance is not None:
-        covariance = np.array(covariance)
-        (n,m) = np.shape(covariance)
+        (n,m) = covariance.shape
         assert n==m, "covariance matrix must be square"
         assert np.all(np.linalg.eigvals(covariance) >= 0), "covariance matrix is not positive definite"
-        dimension = n
+        N = n
         S = np.linalg.cholesky(covariance)
     else:
-        covariance = np.identity(dimension)
-        S = covariance
+        S = np.identity(N)
 
     if mixing_matrix is not None:
         S = np.array(mixing_matrix)
         (n,m) = S.shape
         covariance = S @ S.T
-        dimension = m
+        M = m
 
-    target_dimension, _ = S.shape
-
+    (N, M) = S.shape
+    
+  
     t = np.linspace(0,T,steps+1)
-    X = np.zeros((samples,target_dimension,steps+1))
+    X = np.zeros((samples,N,steps+1))
     
     if gap > 1:
         t = t[np.arange(0,steps+1,gap)]
         X = X[:,:,np.arange(0,steps+1,gap)]
-    
+        savedsteps = int((steps+1)/gap)
+    else:
+        savedsteps = steps
 
     for i in range(samples):
-        dw = S @ np.random.randn(dimension,steps+1)
+        dw = S @ np.random.randn(M,steps+1)
         dw[:,0] = 0
         W = np.sqrt(dt)*np.cumsum(dw,axis=1)
         if gap > 1:
@@ -103,83 +115,83 @@ def wiener(T,dt,dimension=1,samples=1,covariance=None,mixing_matrix=None,gap=1):
         't': t,
         'dt': dt,
         'steps': steps,
+        'savedsteps': savedsteps,
+        'N': N,
         'gap': gap,
         'covariance': covariance,
     }
 
-def ornsteinuhlenbeck(T,
-                      dt,
-                      variability=1,
-                      timescale=1,
-                      dimension=1,
-                      samples=1,
-                      initial_condition=None,
-                      covariance=None,
-                      mixing_matrix=None,
-                      steps=None,
-                      theta=None,
-                      sigma=None,
-                      ):
+def ornstein_uhlenbeck(T,
+                     dt,
+                     stdev=1,
+                     timescale=1,
+                     N=1,
+                     gap=1,
+                     samples=1,
+                     initial_condition=None,
+                     covariance=None,
+                     mixing_matrix=None,
+                     steps=None,
+                     theta=None,
+                     sigma=None,
+                     ):
 
-    r"""
-    Generates realizations of the multivariate Ornstein-Uhlenbeck Process X(t)
-
+    """
+    Generates realizations of the multivariate Ohrenstein-Uhlendreck Process X(t)
     The OUP is the solution to the SDE
 
     .. math::
 
-        dX = -\theta X dt + \sigma dW,
+        dX_i = -\theta_i X_i dt + \sigma_i dW_i,
 
-    where W is the Wiener Process.
+    where :math:`W_i(t)` are components of a multivariate Wiener process.
 
     Returns realizations on the time interval [0,T] at increments dt.
 
     Parameters
     ----------
     T : float
-        The upper bound of the stochastic integral.
+        Time interval.
     dt : float
-        size of the time step. Will be overridden if ``steps`` is provided instead.
-    variability : float, default = 1
-        Standard deviation, defined as ``variability = sigma sqrt(2/timescale)``.
-        Is overridden if any of the parameters ``sigma`` or ``theta`` is provided.
-    timescale : float, default = 1
-        Autocorrelation time of the process, defined as ``timescale = 1 / theta``.
-        Is overridden if parameter ``theta`` is provided.
-    dimension : int, default = 1
+        Time step size. Will be overridden if ``steps`` is provided instead.
+    gap : int, default = 1
+        Gap between saved (returned) points.
+    N : int, default = 1
         The dimension of the stochastic process.
-        If no mixing matrix is provided, ``dimension``
-        will be equal to the ``target_dimension`` of the resulting Wiener process.
     samples : int, default = 1
-        The number of samples generated
-    initial_condition : str or numpy.ndarray, default = None
+        The number realizations.
+    covariance : numpy.ndarray of shape (N, N), default = None
+        In case of a multivariate process the covariance matrix
+        which must be positive semidefinite. If specified, overrides the ``N`` parameter with N.
+    mixing_matrix : numpy.ndarray of shape (N, M), default = None
+        This matrix :math:`S_{ij}` is used to generate an
+        N-dimensional covariant Wiener process (with components :math`W_i, i=1,...,N`) by superposition
+        of independent components :math:`V_j, j=1,...,M` of an M-dimensional Wiener process V.
+
+    .. math::
+
+        W_i = \sum_j S_{ij} \cdot V_j.
+
+        The covariance of W is given by :math:`S \cdot S^T`.
+        If specified, overrides the covariance parameter and the dimension parameter.
+    steps : int, default = None
+        If provided, defines a number of time steps. Overrides `dt` parameter.
+    stdev : float or numpy.ndarray of shape (``N``,), default = 1
+        Standard deviation of :math:`X(t)`.
+        Is overridden if any of the parameters ``sigma`` or ``theta`` are provided.
+        For multivariate process ``stdev[i]`` specifies the standard deviation of component :math:`X_i(t)`.
+    timescale : float of numpy.ndarray of shape (``N``,), default = 1
+        Autocorrelation time of the process.
+        Is overridden if parameter ``theta`` is provided.
+        For multivariate process ``timescale[i]`` specifies the autocorrelation time of component :math:`X_i(t)`.
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
         If ``initial_condition is None``, process will be initiated at X = 0.
         If ``initial_condition == 'stationary'``, initial conditions will be drawn from stationary distribution.
         Else, process will be initiated as ``X[:,0] = initial_condition``.
-    theta : float, default = None
-        Defines the timescale of the process as ``timescale = 1/theta``.
-        Overrides ``timescale`` and ``variability`` if defined.
-    sigma: float, default = None
-        Defines the variability of the process as ``variability = sigma sqrt(2/timescale)``.
-        Overrides ``variability`` if defined.
-    covariance : numpy.ndarray of shape (``dimension``, ``dimension``), default = None
-        In case of a multivariate process the covariance matrix,
-        which must be positive semidefinite. If specified, overrides the ``dimension`` parameter.
-        The resulting realizations will have ``target_dimension = dimension``.
-    mixing_matrix : numpy.ndarray of shape (``target_dimension``, ``dimension``), default = None
-        This matrix, let's call it S with elements :math:`S_{ij}` is used to generate an
-        N-dimensional covariant Wiener processes W (with components :math`W_i, i=1,...,N`) by superposition
-        of independent components :math:`V_j` of an M-dimensional Wiener process V
-
-        .. math::
-
-            W_i = \sum_j S_{ij} \cdot V_j.
-
-        The covariance of W is given by :math:`S \cdot S^T`.
-        Specifying the mixing matrix overrides the covariance parameter and the dimension parameter.
-        if ``False`` (default) all realizations start at the origin.
-    steps : int, default = None
-        if provided, defines a number of time steps. Overrides `dt`.
+    theta : float or numpy.ndarray of shape (``N``,), default = None
+        Overrides ``timescale`` and ``stdev`` if defined.
+    sigma: float or numpy.ndarray of shape (``N``,), default = None
+        Overrides ``stdev`` if defined.
 
     Returns
     -------
@@ -190,66 +202,97 @@ def ornsteinuhlenbeck(T,
         .. code:: python
 
             {
-                'X': 'numpy.ndarray of shape (samples, target_dimension, steps+1) such that  X[i,j,k] is time point k of component j of realization i',
-                't': 'array of time points',
-                'dt': 'time increment',
-                'steps': 'numper of time steps',
-                'noise_covariance': 'covariance matrix, numpy.ndarray of shape (target_dimension, target_dimension)',
-                'variability': 'as defined above',
-                'timescale': 'as defined above',
+                'X': 'numpy.ndarray of shape (samples, dimension, steps+1) 
+                      such that  X[i,j,k] is time point k of component j of realization i',
+                't': 'numpy.ndarray of shape (samples,steps+1)' such that t[i,k] is time point k of realization i,
+                'dt': 'float, time increment',
+                'steps': 'int, numper of time steps',
+                'dimension': 'int, number of components of process',
+                'savedsteps': 'int, number of returned trajectory points in X'
+                'gap': 'int, gap between saved steps'
+                'noise_covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+                'stdev': 'float or numpy.ndarray of shape (dimension), standard deviation of components of process',
+                'timescale': 'float or numpy.ndarray of shape (dimension), timescale of components of process'',
+                'sigma': 'float or numpy.ndarray of shape (dimension), prefactors of noise terms dW_i',
+                'theta': 'float or numpy.ndarray of shape (dimension), linear force terms for process components',
+                'initial_condition': 'numpy.ndarray of shape (samples, dimension), initial condition for the process'                            
             }
-
+                      
     Notes
     -----
 
     You can either provide a covariance matrix OR a mixing_matrix, but not both.
+    You should either provide the parameter pair stdev and timescale or theta and sigma.
     """
-
-    assert not ( (covariance is not None) and (mixing_matrix is not None)), "you cannot specify both, covariance AND mixing_matrix"
-
-    if theta is not None or sigma is not None:
-        if theta is None:
-            theta = 1
-        if sigma is None:
-            sigma = 1
-        timescale = 1 / theta
-        variability = sigma / np.sqrt (2 * theta)
-    else:
-        theta = 1 / timescale
-        sigma = variability * np.sqrt (2 / timescale)
-
-    steps = int( T / dt )
-    covariance = np.identity(dimension)
-    S = covariance
-    target_dimension = dimension
-
+    
+   
     if steps is not None:
         dt = T/steps
-
+    else:
+        steps = int(T / dt)
 
     if covariance is not None:
-        covariance = covariance
-        (n,m) = np.shape(covariance)
-        assert n==m, "covariance must square"
-        assert np.all(np.linalg.eigvals(covariance) >= 0), "covariance is not positive definite"
-        dimension = n
-        target_dimension = n
+        (n,m) = covariance.shape
+        assert n==m, "covariance matrix must be square"
+        assert np.all(np.linalg.eigvals(covariance) >= 0), "covariance matrix is not positive definite"
+        N = n
         S = np.linalg.cholesky(covariance)
     else:
-        covariance = np.identity(dimension)
-        S = covariance
-        target_dimension = dimension
+        S = np.identity(N)
 
     if mixing_matrix is not None:
-        S = mixing_matrix
-        (n,m) = np.shape(S)
+        S = np.array(mixing_matrix)
+        (n,m) = S.shape
         covariance = S @ S.T
         dimension = m
-        target_dimension = n
+
+    (N, M) = S.shape
+    
+    if theta is not None or sigma is not None:
+        if theta is None:
+            if N > 1:
+                theta = np.ones(N)
+            else:
+                theta = 1            
+        if sigma is None:
+            if N > 1:
+                sigma = np.ones(N)
+            else:
+                sigma = 1
+        if N > 1:
+            if not hasattr(theta,'__len__'):
+                theta = theta * np.ones(N)
+            if not hasattr(sigma,'__len__'):
+                sigma = sigma * np.ones(N)        
+        timescale = 1 / theta
+        stdev = sigma / np.sqrt (2 * theta)
+    else:
+        if N > 1:
+            if not hasattr(timescale,'__len__'):
+                timescale = timescale * np.ones(N)
+            if not hasattr(stdev,'__len__'):
+                stdev = stdev * np.ones(N)                
+            timescale = np.array(timescale)
+            stdev = np.array(stdev)            
+            theta = 1.0 / timescale
+            sigma = stdev * np.sqrt (2.0 / timescale)
+        else:
+            theta = 1.0 / timescale
+            sigma = stdev * np.sqrt (2.0 / timescale)
+
 
     sqdt = np.sqrt(dt)
     t = np.linspace(0,T,steps+1)
-    X = np.zeros((samples,target_dimension,steps+1))
+    X = np.zeros((samples,N,steps+1))
+    
+
+    if gap > 1:
+        t = t[np.arange(0,steps+1,gap)]
+        X = X[:,:,np.arange(0,steps+1,gap)]
+        savedsteps = int((steps+1)/gap)
+    else:
+        savedsteps = steps
+
 
     stationary = False
     if isinstance(initial_condition, str):
@@ -258,56 +301,55 @@ def ornsteinuhlenbeck(T,
         else:
             raise ValueError(f"unknown initial condition '{stationary}'")
     elif initial_condition is None:
-        initial_condition = np.zeros(target_dimension)
+        initial_condition = np.zeros(N)
 
     for i in range(samples):
-        x = np.zeros((target_dimension,steps+1))
-        dw = S @ np.random.randn(dimension, steps+1)
+        x = np.zeros((N,steps+1))
+        dw = S @ np.random.randn(M, steps+1)
 
         if stationary:
-            x[:,0] = S @ np.random.randn(dimension)*sigma/np.sqrt(2*theta)
+            x[:,0] = S @ np.random.randn(M)*sigma/np.sqrt(2*theta)
         else:
             x[:,0] = initial_condition
 
         for j in range(steps):
             x[:,j+1] = x[:,j] + (-theta) * dt * x[:,j]+ sigma * sqdt * dw[:,j]
 
-        X[i] = x
+        if gap > 1:
+            X[i] = x[:,np.arange(0,steps+1,gap)]
+        else:
+            X[i] = x
+
 
     return {
-            'variability': variability,
+            'initial_condition': initial_condition,
+            'stdev': stdev,
             'timescale': timescale,
+            'sigma': sigma,
+            'theta': theta,
             'noise_covariance': covariance,
             'steps': steps,
             'dt': dt,
             't': t,
-            'X': X
+            'X': X,
+            'gap': gap,
+            'savedsteps': savedsteps,
+            'N': N
             }
 
-def multiplicative_white_noise(T,
-                      dt,
-                      timescale=1,
-                      dimension=1,
-                      samples=1,
-                      initial_condition=None,
-                      covariance=None,
-                      mixing_matrix=None,
-                      steps=None,
-                      theta=None
-                      ):
+def integrated_ornstein_uhlenbeck(T,dt,**kwargs):
 
-    r"""
-    Generates realizations of the multivariate multiplicative white noise process
-
-    The OUP is the solution to the SDE
+    """
+    Generates a non-negative, multivariate stochastic process
+    :math:`X(t)` that is the integral of a multivariate Ornstein-Uhlenbeck
+    Process :math:`Z(t)` like so
 
     .. math::
 
-        dX = -\theta X dW,
+        X(t) = \int Z(t) dt.
 
-    where W is the Wiener Process.
-
-    Returns realizations on the time interval [0,T] at increments dt.
+    Returns realizations on the
+    time interval [0,T] at increments dt.
 
     Parameters
     ----------
@@ -315,39 +357,9 @@ def multiplicative_white_noise(T,
         The upper bound of the stochastic integral.
     dt : float
         size of the time step. Will be overridden if ``steps`` is provided instead.
-    timescale : float, default = 1
-        defined as ``timescale = 1 / theta``.
-        Is overridden if parameter ``theta`` is provided.
-    dimension : int, default = 1
-        The dimension of the stochastic process.
-        If no mixing matrix is provided, ``dimension``
-        will be equal to the ``target_dimension`` of the resulting Wiener process.
-    samples : int, default = 1
-        The number of samples generated
-    initial_condition : str or numpy.ndarray, default = None
-        If ``initial_condition is None``, process will be initiated at X = 1.
-        Else, process will be initiated as ``X[:,0] = initial_condition``.
-    theta : float, default = None
-        Defines the timescale of the process as ``timescale = 1/theta``.
-        Overrides ``timescale`` and ``variability`` if defined.
-    covariance : numpy.ndarray of shape (``dimension``, ``dimension``), default = None
-        In case of a multivariate process the covariance matrix,
-        which must be positive semidefinite. If specified, overrides the ``dimension`` parameter.
-        The resulting realizations will have ``target_dimension = dimension``.
-    mixing_matrix : numpy.ndarray of shape (``target_dimension``, ``dimension``), default = None
-        This matrix, let's call it S with elements :math:`S_{ij}` is used to generate an
-        N-dimensional covariant Wiener processes W (with components :math`W_i, i=1,...,N`) by superposition
-        of independent components :math:`V_j` of an M-dimensional Wiener process V
-
-        .. math::
-
-            W_i = \sum_j S_{ij} \cdot V_j.
-
-        The covariance of W is given by :math:`S \cdot S^T`.
-        Specifying the mixing matrix overrides the covariance parameter and the dimension parameter.
-        if ``False`` (default) all realizations start at the origin.
-    steps : int, default = None
-        if provided, defines a number of time steps. Overrides `dt`.
+    **kwargs
+        Additional keyword arguments that will be passed
+        to :func:`stopro.stopro.ornsteinuhlenbeck`.    
 
     Returns
     -------
@@ -358,383 +370,845 @@ def multiplicative_white_noise(T,
         .. code:: python
 
             {
-                'X': 'numpy.ndarray of shape (samples, target_dimension, steps+1) such that  X[i,j,k] is time point k of component j of realization i',
-                't': 'array of time points',
-                'dt': 'time increment',
-                'steps': 'numper of time steps',
-                'noise_covariance': 'covariance matrix, numpy.ndarray of shape (target_dimension, target_dimension)',
-                'timescale': 'as defined above',
+                'X': 'numpy.ndarray of shape (samples, dimension, steps+1) 
+                      such that  X[i,j,k] is time point k of component j of realization i',
+                't': 'numpy.ndarray of shape (samples,steps+1)' such that t[i,k] is time point k of realization i,
+                'dt': 'float, time increment',
+                'steps': 'int, numper of time steps',
+                'N': 'int, number of components of process',
+                'savedsteps': 'int, number of returned trajectory points in X'
+                'gap': 'int, gap between saved steps'
+                'noise_covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+                'stdev': 'float or numpy.ndarray of shape (dimension), standard deviation of components of process',
+                'timescale': 'float or numpy.ndarray of shape (dimension), timescale of components of process'',
+                'sigma': 'float or numpy.ndarray of shape (dimension), prefactors of noise terms dW_i',
+                'theta': 'float or numpy.ndarray of shape (dimension), linear force terms for process components',
+                'initial_condition': 'numpy.ndarray of shape (samples, dimension), initial condition for the process'                            
             }
-
-    Notes
-    -----
-
-    You can either provide a covariance matrix OR a mixing_matrix, but not both.
+                      
+    
     """
-
-    assert not ( (covariance is not None) and (mixing_matrix is not None)), "you cannot specify both, covariance AND mixing_matrix"
-
-    if theta is not None:
-        timescale = 1 / theta
+    
+    if "gap" in kwargs:
+        gap = kwargs['gap']
+        del kwargs["gap"]
     else:
-        theta = 1 / timescale
+        gap = 1
 
-    steps = int( T / dt )
-    covariance = np.identity(dimension)
-    S = covariance
-    target_dimension = dimension
+    res = ornstein_uhlenbeck(T,dt,gap=1,**kwargs)
 
-    if steps is not None:
-        dt = T/steps
+    t = res["t"]
+    x =res["X"]
+    y = dt*np.cumsum(x,axis=2)
 
-
-    if covariance is not None:
-        covariance = covariance
-        (n,m) = np.shape(covariance)
-        assert n==m, "covariance must square"
-        assert np.all(np.linalg.eigvals(covariance) >= 0), "covariance is not positive definite"
-        dimension = n
-        target_dimension = n
-        S = np.linalg.cholesky(covariance)
+    steps = res["steps"]
+    
+    if gap > 1:
+        t = t[np.arange(0,steps+1,gap)]
+        y = y[:,:,np.arange(0,steps+1,gap)]
+        savedsteps = int((steps+1)/gap)
     else:
-        covariance = np.identity(dimension)
-        S = covariance
-        target_dimension = dimension
-
-    if mixing_matrix is not None:
-        S = mixing_matrix
-        (n,m) = np.shape(S)
-        covariance = S @ S.T
-        dimension = m
-        target_dimension = n
-
-    sqdt = np.sqrt(dt)
-    t = np.linspace(0,T,steps+1)
-    X = np.zeros((samples,target_dimension,steps+1))
-
-    if initial_condition is None:
-        initial_condition = np.ones(target_dimension)
-
-    for i in range(samples):
-        x = np.zeros((target_dimension,steps+1))
-        dw = S @ np.random.randn(dimension, steps+1)
-
-        x[:,0] = initial_condition
-
-        for j in range(steps):
-            x[:,j+1] = x[:,j] + theta * x[:,j] * sqdt * dw[:,j]
-
-        X[i] = x
-
-    return {
-            'timescale': timescale,
-            'noise_covariance': covariance,
-            'steps': steps,
-            'dt': dt,
-            't': t,
-            'X': X
-            }
-
+        savedsteps = steps
+    
+    
+    res["X"]=y
+    res["t"]=t
+    res["savedsteps"] = savedsteps
+    res["gap"] = gap
+    return res
+    
 def geometric_brownian_motion(T,
                       dt,
+                      mu=1, 
+                      sigma=1,
+                      initial_condition=None,
+                      **kwargs,
+                      ):
+
+    """
+    Generates realizations of multivariate, geometric Brownian motion (GBM)
+
+    GBM is the solution to the SDE
+
+    .. math::
+
+        dX_i = \mu_i X_i dt + \sigma_i X_i dW_i,
+
+    where W_i are covariant Wiener processes. The solution
+    of the processes are given by
+    
+    .. math::
+        
+        X_i(t)=X_i(0) * Exp [(\mu_i - 1/2*\sigma_i^2)t+\sigma_i W_i(t)].
+
+    Returns realizations on the time interval [0,T] at increments dt.
+
+    Parameters
+    ----------
+    T : float
+        Time interval.
+    dt : float
+        Time step size. Will be overridden if ``steps`` is provided instead.
+    mu : float or numpy.ndarray of shape (``N``,), default = 1
+    sigma : float of numpy.ndarray of shape (``N``,), default = 1
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
+        If ``initial_condition is None``, process will be initiated at X = 1.
+        Else, process will be initiated as ``X[:,0] = initial_condition``.
+    **kwargs
+        Additional keyword arguments that will be passed
+        to :func:`stopro.stopro.wiener`.                      
+ 
+    Returns
+    -------
+    result : dict
+
+
+        Result in the following structure:
+
+        .. code:: python
+
+            {
+                'X': 'numpy.ndarray of shape (samples, dimension, steps+1) 
+                      such that  X[i,j,k] is time point k of component j of realization i',
+                't': 'numpy.ndarray of shape (samples,steps+1)' such that t[i,k] is time point k of realization i,
+                'dt': 'float, time increment',
+                'steps': 'int, numper of time steps',
+                'N': 'int, number of components of process',
+                'savedsteps': 'int, number of returned trajectory points in X'
+                'gap': 'int, gap between saved steps'
+                'noise_covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+                'sigma': 'float or numpy.ndarray of shape (dimension), prefactors of noise terms dW_i',
+                'mu': 'float or numpy.ndarray of shape (dimension), linear force terms for process components',
+                'initial_condition': 'numpy.ndarray of shape (samples, dimension), initial condition for the process'                            
+            }
+
+    Notes
+    -----
+
+    You can either provide a covariance matrix OR a mixing_matrix, but not both.
+    """
+
+    if "gap" in kwargs:
+        gap = kwargs['gap']
+        del kwargs["gap"]
+    else:
+        gap = 1
+
+    res = wiener(T,dt,gap=1,**kwargs)
+    X = res["X"]
+    t = res["t"]
+    D = res["N"]
+
+    if initial_condition is None:
+        if D > 1:
+            x0 = np.ones(D)
+        else:
+            x0 = 1
+    else:
+        if D > 1:
+            if not hasattr(initial_condition,'__len__'):
+                x0 = initial_condition * np.ones(D)
+            else:
+                x0 = initial_condition
+        else:
+            x0 = initial_condition
+        
+    if D > 1:
+        if not hasattr(mu,'__len__'):
+            mu = mu * np.ones(D)
+        
+        if not hasattr(sigma,'__len__'):
+            sigma = sigma * np.ones(D)
+                        
+        for i in range(D):
+            X[:,i,:] = x0[i]*np.exp( ( mu[i] - 0.5*sigma[i]**2 ) * t + sigma[i]*X[:,i,:])
+    else:    
+        X = x0 * np.exp( (mu - 0.5*sigma**2)*t + sigma*X)
+    
+    steps = res["steps"]
+    
+    if gap > 1:
+        t = t[np.arange(0,steps+1,gap)]
+        X = X[:,:,np.arange(0,steps+1,gap)]
+        savedsteps = int((steps+1)/gap)
+    else:
+        savedsteps = steps
+        
+    res["X"] = X
+    res["t"] = t
+    res["mu"] = mu
+    res["sigma"] = sigma
+    res["initial_condition"] = x0
+    res["noise_covariance"] = res["covariance"]
+    del res["covariance"]
+    
+    
+    return res
+
+def colored_geometric_brownian_motion(T,
+                      dt,
+                      mu=1, 
+                      sigma=1,
+                      tau=1,
+                      N=1,
+                      initial_condition=None,
+                      **kwargs,
+                      ):
+
+    """
+    Generates realizations of multivariate, geometric Brownian motion (GBM)
+
+    GBM is the solution to the SDE
+
+    .. math::
+
+        dX_i = \mu_i X_i dt + \sigma_i Z_i dt,
+        tau_i dZ_i = -Z_i + dW_i
+                      
+    where W_i are covariant Wiener processes. 
+                      
+    Returns realizations on the time interval [0,T] at increments dt.
+
+    Parameters
+    ----------
+    T : float
+        Time interval.
+    dt : float
+        Time step size. Will be overridden if ``steps`` is provided instead.
+    mu : float or numpy.ndarray of shape (``N``,), default = 1
+    sigma : float of numpy.ndarray of shape (``N``,), default = 1
+    tau : float of numpy.ndarray of shape (``N``,), default = 1                      
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
+        If ``initial_condition is None``, process will be initiated at X = 1.
+        Else, process will be initiated as ``X[:,0] = initial_condition``.
+    **kwargs
+        Additional keyword arguments that will be passed
+        to :func:`stopro.stopro.wiener`.                      
+ 
+    Returns
+    -------
+    result : dict
+
+
+        Result in the following structure:
+
+        .. code:: python
+
+            {
+                'X': 'numpy.ndarray of shape (samples, dimension, steps+1) 
+                      such that  X[i,j,k] is time point k of component j of realization i',
+                't': 'numpy.ndarray of shape (samples,steps+1)' such that t[i,k] is time point k of realization i,
+                'dt': 'float, time increment',
+                'steps': 'int, numper of time steps',
+                'N': 'int, number of components of process',
+                'savedsteps': 'int, number of returned trajectory points in X'
+                'gap': 'int, gap between saved steps'
+                'noise_covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+                'sigma': 'float or numpy.ndarray of shape (dimension), prefactors of noise terms dW_i',
+                'mu': 'float or numpy.ndarray of shape (dimension), linear force terms for process components',
+                'initial_condition': 'numpy.ndarray of shape (samples, dimension), initial condition for the process'                            
+            }
+
+    Notes
+    -----
+
+    You can either provide a covariance matrix OR a mixing_matrix, but not both.
+    """
+                      
+    if "gap" in kwargs:
+        gap = kwargs['gap']
+        del kwargs["gap"]
+    else:
+        gap = 1
+
+    res = integrated_ornstein_uhlenbeck(T,dt,theta=1.0/tau,sigma=1.0/tau,N=N,gap=1,initial_condition="stationary",**kwargs)
+
+    X = res["X"]
+    t = res["t"]
+    D = res["N"]
+
+    if initial_condition is None:
+        if D > 1:
+            x0 = np.ones(D)
+        else:
+            x0 = 1
+    else:
+        if D > 1:
+            if not hasattr(initial_condition,'__len__'):
+                x0 = initial_condition * np.ones(D)
+            else:
+                x0 = initial_condition
+        else:
+            x0 = initial_condition
+        
+    if D > 1:
+        if not hasattr(mu,'__len__'):
+            mu = mu * np.ones(D)
+        
+        if not hasattr(sigma,'__len__'):
+            sigma = sigma * np.ones(D)
+                        
+        for i in range(D):
+            X[:,i,:] = x0[i]*np.exp( ( mu[i] ) * t + sigma[i]*X[:,i,:])
+    else:    
+        X = x0 * np.exp( mu *t + sigma*X)
+    
+    steps = res["steps"]
+    
+    if gap > 1:
+        t = t[np.arange(0,steps+1,gap)]
+        X = X[:,:,np.arange(0,steps+1,gap)]
+        savedsteps = int((steps+1)/gap)
+    else:
+        savedsteps = steps
+        
+    res["X"] = X
+    res["t"] = t
+    res["mu"] = mu
+    res["sigma"] = sigma
+    res["tau"] = tau
+    res["N"] = N
+    res["initial_condition"] = x0
+    return res
+
+def gillespie_replicator(T,
+                     dt,
+                     N=2,
+                     initial_condition=None,
+                     **kwargs
+                     ):
+
+    """
+    Generates realizations :math:`Y(t)` of a multivariate, stochastic replicator model, originally analyzed by Gillespie. 
+    The foundation is a set of multivariate geometric Brownian motion processes with parameters :math:`(\mu_i,\sigma_i)`:
+                     
+    .. math::
+
+        dX_i = \mu_i X_i dt + \sigma_i X_i dW_i,
+
+    where W_i are covariant Wiener processes. The Gillespie replicator model is just the normalized version of the process so
+    
+    .. math::
+        
+        Y_i(t)=X_i(t) / \sum_j X_(t)
+
+
+    Parameters
+    ----------
+    T : float
+        Time interval.
+    dt : float
+        Time step size. Will be overridden if ``steps`` is provided instead.
+    N : int, default 2
+        Number of species, must be > 1.
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
+        If ``initial_condition is None``, process will be initiated at X = 1.
+        Else, process will be initiated as ``X[:,0] = initial_condition``.
+    **kwargs
+        Additional keyword arguments that will be passed
+        to :func:`stopro.stopro.geometric_brownian_motion`. 
+ 
+    Returns
+    -------
+    result : dict
+
+    
+    .. code:: python
+
+        {
+            'X': 'numpy.ndarray of shape (samples, dimension, steps+1) 
+                  such that  X[i,j,k] is time point k of component j of realization i',
+                't': 'numpy.ndarray of shape (samples,steps+1)' such that t[i,k] is time point k of realization i,
+                'dt': 'float, time increment',
+                'steps': 'int, numper of time steps',
+                'N': 'int, number of components of process',
+                'savedsteps': 'int, number of returned trajectory points in X'
+                'gap': 'int, gap between saved steps'
+                'noise_covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+                'sigma': 'numpy.ndarray of shape (dimension), prefactors of noise terms dW_i',
+                'mu': 'numpy.ndarray of shape (dimension), linear force terms for process components',
+                'initial_condition': 'numpy.ndarray of shape (samples, dimension), initial condition for the process'                            
+        }
+
+   
+    """    
+ 
+    assert N > 1, "The number of species n must be greater than 1"
+    
+    if "gap" in kwargs:
+        gap = kwargs['gap']
+        del kwargs["gap"]
+    else:
+        gap = 1
+        
+        
+    if initial_condition is not None:
+        initial_condition = initial_condition / np.sum(initial_condition,axis=0)
+    else:
+        initial_condition = np.ones(N)/N
+      
+    res = geometric_brownian_motion(T,dt,gap=1,N=N,initial_condition=initial_condition,**kwargs)
+    
+    Y = res["X"]
+    t = res["t"]
+    D = res["N"]
+    
+    steps = res["steps"]
+    
+    if gap > 1:
+        t = t[np.arange(0,steps+1,gap)]
+        Y = Y[:,:,np.arange(0,steps+1,gap)]
+        savedsteps = int((steps+1)/gap)
+    else:
+        savedsteps = steps
+    
+    
+    gront = np.sum (Y,axis=1)
+    res["t"] = t
+    res["X"] = Y / gront[:,None,:]
+    
+    return res
+
+def kimura_replicator(T,dt,
+                    N=2,
+                    mu=1.0,
+                    sigma=1.0,
+                    initial_condition=None,
+                    gap=1,
+                    samples=1,
+                    covariance=None,
+                    mixing_matrix=None,
+                    steps=None):
+    """
+    Generates realizations of the multivariate, stochastic replicator model introduced by Kimura:
+
+    .. math::
+
+        dX_i = (mu_i(t)-\phi)  X_i dt
+        
+    where 
+
+    .. math::
+
+        \phi = sum_j mu_j X_j 
+    
+    is the mean fitness at time t and the time dependent fitness functions are defined by
+                    
+    .. math::
+
+        \mu_i (t) dt = \mu_i dt + \sigma_i dW_i
+                    
+                    
+    where W_i are covariant Wiener processes.
+                    
+
+    Parameters
+    ----------
+    T : float
+        Time interval.
+    dt : float
+        Time step size. Will be overridden if ``steps`` is provided instead.
+    N : int, default 2
+        Number of species, must be > 1.
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
+        If ``initial_condition is None``, process will be initiated at X = 1.
+        Else, process will be initiated as ``X[:,0] = initial_condition``.
+    mu : float or numpy.ndarray of shape (``N``,), default = 1
+    sigma : float of numpy.ndarray of shape (``N``,), default = 1
+    gap : int, temporal sampling gap, default = 1 
+    samples : int, default = 1
+        The number of samples generated
+    covariance : numpy.ndarray of shape (``dimension``, ``dimension``), default = None
+        In case of a multivariate process the covariance matrix,
+        which must be positive semidefinite. If specified, overrides the ``dimension`` parameter.
+        The resulting realizations will have ``target_dimension = dimension``.
+    mixing_matrix : numpy.ndarray of shape (``target_dimension``, ``dimension``), default = None
+        This matrix, let's call it S with elements :math:`S_{ij}` is used to generate an
+        N-dimensional covariant Wiener processes W (with components :math`W_i, i=1,...,N`) by superposition
+        of independent components :math:`V_j` of an M-dimensional Wiener process V
+
+        .. math::
+
+            W_i = \sum_j S_{ij} \cdot V_j.
+
+        The covariance of W is given by :math:`S \cdot S^T`.
+        Specifying the mixing matrix overrides the covariance parameter and the dimension parameter.
+        if ``False`` (default) all realizations start at the origin.
+    steps : int, default = None
+        if provided, defines a number of time steps. Overrides `dt`.
+ 
+    Returns
+    -------
+    result : dict
+
+        Result in the following structure:
+
+        .. code:: python
+
+            {
+                'X': 'numpy.ndarray of shape (samples, dimension, steps+1) 
+                      such that  X[i,j,k] is time point k of component j of realization i',
+                't': 'numpy.ndarray of shape (samples,steps+1)' such that t[i,k] is time point k of realization i,
+                'dt': 'float, time increment',
+                'steps': 'int, numper of time steps',
+                'N': 'int, number of components of process',
+                'savedsteps': 'int, number of returned trajectory points in X'
+                'gap': 'int, gap between saved steps'
+                'noise_covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+                'sigma': 'numpy.ndarray of shape (dimension), prefactors of noise terms dW_i',
+                'mu': 'numpy.ndarray of shape (dimension), linear force terms for process components',
+                'initial_condition': 'numpy.ndarray of shape (samples, dimension), initial condition for the process'                            
+            }
+
+   """      
+    
+
+    if steps is not None:
+        dt = T/steps
+    else:
+        steps = int(T / dt)
+
+    if covariance is not None:
+        (n,m) = covariance.shape
+        assert n==m, "covariance matrix must be square"
+        assert np.all(np.linalg.eigvals(covariance) >= 0), "covariance matrix is not positive definite"
+        N = n
+        S = np.linalg.cholesky(covariance)
+    else:
+        S = np.identity(N)
+
+    if mixing_matrix is not None:
+        S = np.array(mixing_matrix)
+        (n,m) = S.shape
+        covariance = S @ S.T
+        N = m
+
+    (N, M) = S.shape
+    
+    
+    if initial_condition is not None:
+        initial_condition = initial_condition / np.sum(initial_condition,axis=0)
+    else:
+        initial_condition = np.ones(N)/N
+        
+    if not hasattr(mu,'__len__'):
+        mu = mu * np.ones(N)
+
+    if not hasattr(sigma,'__len__'):
+        sigma = sigma * np.ones(N)
+    
+        
+
+    assert N > 1, "The number of species N must be greater than 1"
+    assert (len(mu) is N and len(sigma) is N), "both parameters mu and sigma must have length equal to n"
+    
+    sqdt = np.sqrt(dt)
+    t = np.linspace(0,T,steps+1)
+    X = np.zeros((samples,N,steps+1))
+    
+
+    if gap > 1:
+        t = t[np.arange(0,steps+1,gap)]
+        X = X[:,:,np.arange(0,steps+1,gap)]
+        savedsteps = int((steps+1)/gap)
+    else:
+        savedsteps = steps
+    
+    for i in range(samples):
+        x = np.zeros((N,steps+1))
+        dw = S @ np.random.randn(M, steps+1)
+     
+        x[:,0] = initial_condition
+
+        for j in range(steps):
+            r = mu * dt + sigma * dw[:,j] * sqdt
+            phi = np.sum(r * x[:,j])
+            dx = (r-phi)*x[:,j]
+            x[:,j+1] = x[:,j] + dx     
+     
+        if gap > 1:
+            X[i] = x[:,np.arange(0,steps+1,gap)]
+        else:
+            X[i] = x
+
+    return {
+            'initial_condition': initial_condition,
+            'mu': mu,
+            'sigma': sigma,
+            'noise_covariance': covariance,
+            'steps': steps,
+            'dt': dt,
+            't': t,
+            'X': X,
+            'gap': gap,
+            'N' : N,
+            'savedsteps': savedsteps,
+            }                      
+
+def stochastic_replicator(T,
+                      dt,
+                      N=2,
+                      initial_condition=None,
                       mu=1,
                       sigma=1,
-                      dimension=1,
-                      samples=1,
-                      initial_condition=None,
-                      covariance=None,
-                      mixing_matrix=None,
-                      steps=None,
+                      **kwargs,
                       ):
 
-    r"""
-    Generates realizations of the multivariate multiplicative white noise process
+    """
+    Generates realizations :math:`Y(t)` of a multivariate, stochastic replicator model:
+                     
+    .. math::
 
-    The OUP is the solution to the SDE
+        dX_i = \mu_i X_i dt + \sigma_i X_i Z_i(t) dt
+    
+    with 
 
     .. math::
 
-        dX = \mu X dt + \sigma X dW,
+        tau_i dZ_i = - Z_i+dW_i
 
-    where W is the Wiener Process.
+    where :math:`Z_i(t)` are Ornstein Uhlenbeck processes and the limit :math:`tau_i\rightarrow 0` is performed. This
+    is equivalent to a Stratonovich interpretation of the SDE:
+                      
+    .. math::
 
-    Returns realizations on the time interval [0,T] at increments dt.
+        dX_i = \mu_i X_i dt + \sigma_i X_i dW_i dt
+    
+    or the Ito-Interpretation of the SDE
+
+    .. math::
+
+        dX_i = (\mu_i + \sigma_i^2/2) X_i dt + \sigma_i X_i dW_i dt
+
+                      
+    Finally the trajectories are normalized.
+
+    .. math::
+                      
+        Y_i(t)=X_i(t) / \sum_j X_(t)
+
 
     Parameters
     ----------
     T : float
-        The upper bound of the stochastic integral.
+        Time interval.
     dt : float
-        size of the time step. Will be overridden if ``steps`` is provided instead.
-    mu : float, default = 1
-        linear force parameter of SDE
-    mu : float, default = 1
-         noise strength parameter of SDE
-    dimension : int, default = 1
-        The dimension of the stochastic process.
-        If no mixing matrix is provided, ``dimension``
-        will be equal to the ``target_dimension`` of the resulting Wiener process.
-    samples : int, default = 1
-        The number of samples generated
-    initial_condition : str or numpy.ndarray, default = None
+        Time step size. Will be overridden if ``steps`` is provided instead.
+    N : int, default 2
+        Number of species, must be > 1.
+    mu : float, np.ndarray of shape (N,)
+    sigma : float, np.ndarray of shape (N,)
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
         If ``initial_condition is None``, process will be initiated at X = 1.
         Else, process will be initiated as ``X[:,0] = initial_condition``.
-    covariance : numpy.ndarray of shape (``dimension``, ``dimension``), default = None
-        In case of a multivariate process the covariance matrix,
-        which must be positive semidefinite. If specified, overrides the ``dimension`` parameter.
-        The resulting realizations will have ``target_dimension = dimension``.
-    mixing_matrix : numpy.ndarray of shape (``target_dimension``, ``dimension``), default = None
-        This matrix, let's call it S with elements :math:`S_{ij}` is used to generate an
-        N-dimensional covariant Wiener processes W (with components :math`W_i, i=1,...,N`) by superposition
-        of independent components :math:`V_j` of an M-dimensional Wiener process V
-
-        .. math::
-
-            W_i = \sum_j S_{ij} \cdot V_j.
-
-        The covariance of W is given by :math:`S \cdot S^T`.
-        Specifying the mixing matrix overrides the covariance parameter and the dimension parameter.
-        if ``False`` (default) all realizations start at the origin.
-    steps : int, default = None
-        if provided, defines a number of time steps. Overrides `dt`.
-
+    **kwargs
+        Additional keyword arguments that will be passed
+        to :func:`stopro.stopro.geometric_brownian_motion`. 
+ 
     Returns
     -------
     result : dict
 
-        Result in the following structure:
+    
+    .. code:: python
 
-        .. code:: python
+        {
+            'X': 'numpy.ndarray of shape (samples, dimension, steps+1) 
+                  such that  X[i,j,k] is time point k of component j of realization i',
+                't': 'numpy.ndarray of shape (samples,steps+1)' such that t[i,k] is time point k of realization i,
+                'dt': 'float, time increment',
+                'steps': 'int, numper of time steps',
+                'N': 'int, number of components of process',
+                'savedsteps': 'int, number of returned trajectory points in X'
+                'gap': 'int, gap between saved steps'
+                'noise_covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+                'sigma': 'numpy.ndarray of shape (dimension), prefactors of noise terms dW_i',
+                'mu': 'numpy.ndarray of shape (dimension), linear force terms for process components',
+                'initial_condition': 'numpy.ndarray of shape (samples, dimension), initial condition for the process'                            
+        }
 
-            {
-                'X': 'numpy.ndarray of shape (samples, target_dimension, steps+1) such that  X[i,j,k] is time point k of component j of realization i',
-                't': 'array of time points',
-                'dt': 'time increment',
-                'steps': 'numper of time steps',
-                'noise_covariance': 'covariance matrix, numpy.ndarray of shape (target_dimension, target_dimension)',
-                'timescale': 'as defined above',
-            }
+   
+    """    
+ 
+  
 
-    Notes
-    -----
-
-    You can either provide a covariance matrix OR a mixing_matrix, but not both.
-    """
-
-    assert not ( (covariance is not None) and (mixing_matrix is not None)), "you cannot specify both, covariance AND mixing_matrix"
-
-
-    steps = int( T / dt )
-    covariance = np.identity(dimension)
-    S = covariance
-    target_dimension = dimension
-
-    if steps is not None:
-        dt = T/steps
-
-
-    if covariance is not None:
-        covariance = covariance
-        (n,m) = np.shape(covariance)
-        assert n==m, "covariance must square"
-        assert np.all(np.linalg.eigvals(covariance) >= 0), "covariance is not positive definite"
-        dimension = n
-        target_dimension = n
-        S = np.linalg.cholesky(covariance)
+    assert N > 1, "The number of species N must be greater than 1"
+    
+    if "gap" in kwargs:
+        gap = kwargs['gap']
+        del kwargs["gap"]
     else:
-        covariance = np.identity(dimension)
-        S = covariance
-        target_dimension = dimension
+        gap = 1
+        
+        
+    if initial_condition is not None:
+        initial_condition = initial_condition / np.sum(initial_condition,axis=0)
+    else:
+        initial_condition = np.ones(N)/N
+    
+    if not hasattr(mu,'__len__'):
+        mu = mu * np.ones(N)
 
-    if mixing_matrix is not None:
-        S = mixing_matrix
-        (n,m) = np.shape(S)
-        covariance = S @ S.T
-        dimension = m
-        target_dimension = n
+    if not hasattr(sigma,'__len__'):
+        sigma = sigma * np.ones(N)
 
-    sqdt = np.sqrt(dt)
-    t = np.linspace(0,T,steps+1)
-    X = np.zeros((samples,target_dimension,steps+1))
+    res = geometric_brownian_motion(T,dt,N=N,mu=mu+0.5*sigma**2,sigma=sigma,gap=1,initial_condition=initial_condition,**kwargs)
+    Y = res["X"]
+    t = res["t"]
 
-    if initial_condition is None:
-        initial_condition = np.ones(target_dimension)
+    steps = res["steps"]
+    
+    if gap > 1:
+        t = t[np.arange(0,steps+1,gap)]
+        Y = Y[:,:,np.arange(0,steps+1,gap)]
+        savedsteps = int((steps+1)/gap)
+    else:
+        savedsteps = steps
+        
+    gront = np.sum (Y,axis=1)
 
-    for i in range(samples):
-        x = np.zeros((target_dimension,steps+1))
-        dw = S @ np.random.randn(dimension, steps+1)
+    res["X"] = Y / gront[:,None,:]
+    res["t"] = t
+    res["mu"] = mu
+    res["sigma"] = sigma
+    res["N"] = N
+    
+    return res
 
-        x[:,0] = initial_condition
-
-        for j in range(steps):
-            x[:,j+1] = x[:,j] + mu * x[:,j] * dt + sigma * x[:,j] * sqdt * dw[:,j]
-
-        X[i] = x
-
-    return {
-            'mu': mu,
-            'sigma':sigma,
-            'noise_covariance': covariance,
-            'steps': steps,
-            'dt': dt,
-            't': t,
-            'X': X
-            }
-
-
-def noisy_logistic_growth(T,
+def colored_stochastic_replicator(T,
                       dt,
-                      timescale=1,
-                      dimension=1,
-                      samples=1,
+                      N=2,
+                      mu=1.0, 
+                      sigma=1.0,
+                      tau=1.0, 
                       initial_condition=None,
-                      covariance=None,
-                      mixing_matrix=None,
-                      steps=None,
-                      theta=None
-                      ):
+                      **kwargs):
 
-    r"""
-    Generates realizations of the multivariate multiplicative white noise process
+    """
+    Generates realizations :math:`Y(t)` of a multivariate, stochastic replicator model:
+                     
+    .. math::
 
-    The OUP is the solution to the SDE
+        dX_i = \mu_i X_i dt + \sigma_i X_i Z_i(t) dt
+    
+    with 
 
     .. math::
 
-        dX = -\theta X dW,
+        tau_i dZ_i = - Z_i+dW_i
 
-    where W is the Wiener Process.
+    where :math:`Z_i(t)` are Ornstein Uhlenbeck processes.
+                      
+    The solution is
 
-    Returns realizations on the time interval [0,T] at increments dt.
+    .. math::
+                      
+        Y_i(t)=X_i(t) / \sum_j X_(t)
+
 
     Parameters
     ----------
     T : float
-        The upper bound of the stochastic integral.
+        Time interval.
     dt : float
-        size of the time step. Will be overridden if ``steps`` is provided instead.
-    timescale : float, default = 1
-        defined as ``timescale = 1 / theta``.
-        Is overridden if parameter ``theta`` is provided.
-    dimension : int, default = 1
-        The dimension of the stochastic process.
-        If no mixing matrix is provided, ``dimension``
-        will be equal to the ``target_dimension`` of the resulting Wiener process.
-    samples : int, default = 1
-        The number of samples generated
-    initial_condition : str or numpy.ndarray, default = None
+        Time step size. Will be overridden if ``steps`` is provided instead.
+    N : int, default 2
+        Number of species, must be > 1.
+    mu : float, np.ndarray of shape (N,)
+    sigma : float, np.ndarray of shape (N,)
+    tau : float, np.ndarray of shape (N,)                      
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
         If ``initial_condition is None``, process will be initiated at X = 1.
         Else, process will be initiated as ``X[:,0] = initial_condition``.
-    theta : float, default = None
-        Defines the timescale of the process as ``timescale = 1/theta``.
-        Overrides ``timescale`` and ``variability`` if defined.
-    covariance : numpy.ndarray of shape (``dimension``, ``dimension``), default = None
-        In case of a multivariate process the covariance matrix,
-        which must be positive semidefinite. If specified, overrides the ``dimension`` parameter.
-        The resulting realizations will have ``target_dimension = dimension``.
-    mixing_matrix : numpy.ndarray of shape (``target_dimension``, ``dimension``), default = None
-        This matrix, let's call it S with elements :math:`S_{ij}` is used to generate an
-        N-dimensional covariant Wiener processes W (with components :math`W_i, i=1,...,N`) by superposition
-        of independent components :math:`V_j` of an M-dimensional Wiener process V
-
-        .. math::
-
-            W_i = \sum_j S_{ij} \cdot V_j.
-
-        The covariance of W is given by :math:`S \cdot S^T`.
-        Specifying the mixing matrix overrides the covariance parameter and the dimension parameter.
-        if ``False`` (default) all realizations start at the origin.
-    steps : int, default = None
-        if provided, defines a number of time steps. Overrides `dt`.
-
+    **kwargs
+        Additional keyword arguments that will be passed
+        to :func:`stopro.stopro.integrated_brownian_motion`. 
+ 
     Returns
     -------
     result : dict
 
-        Result in the following structure:
+    
+    .. code:: python
 
-        .. code:: python
+        {
+            'X': 'numpy.ndarray of shape (samples, dimension, steps+1) 
+                  such that  X[i,j,k] is time point k of component j of realization i',
+                't': 'numpy.ndarray of shape (samples,steps+1)' such that t[i,k] is time point k of realization i,
+                'dt': 'float, time increment',
+                'steps': 'int, numper of time steps',
+                'N': 'int, number of components of process',
+                'savedsteps': 'int, number of returned trajectory points in X'
+                'gap': 'int, gap between saved steps'
+                'noise_covariance': 'numpy.ndarray of shape (dimension, dimension) such that covariance[i,j] = < dW_i dW_k>'
+                'sigma': 'numpy.ndarray of shape (dimension), prefactors of noise terms dW_i',
+                'mu': 'numpy.ndarray of shape (dimension), linear force terms for process components',
+                'initial_condition': 'numpy.ndarray of shape (samples, dimension), initial condition for the process'                            
+        }
 
-            {
-                'X': 'numpy.ndarray of shape (samples, target_dimension, steps+1) such that  X[i,j,k] is time point k of component j of realization i',
-                't': 'array of time points',
-                'dt': 'time increment',
-                'steps': 'numper of time steps',
-                'noise_covariance': 'covariance matrix, numpy.ndarray of shape (target_dimension, target_dimension)',
-                'timescale': 'as defined above',
-            }
-
-    Notes
-    -----
-
-    You can either provide a covariance matrix OR a mixing_matrix, but not both.
-    """
-
-    assert not ( (covariance is not None) and (mixing_matrix is not None)), "you cannot specify both, covariance AND mixing_matrix"
-
-    if theta is not None:
-        timescale = 1 / theta
+   
+    """ 
+    if "gap" in kwargs:
+        gap = kwargs['gap']
+        del kwargs["gap"]
     else:
-        theta = 1 / timescale
+        gap = 1
 
-    steps = int( T / dt )
-    covariance = np.identity(dimension)
-    S = covariance
-    target_dimension = dimension
+    res = integrated_ornstein_uhlenbeck(T,dt,theta=1.0/tau,sigma=1.0/tau,N=N,gap=1,initial_condition="stationary",**kwargs)
 
-    if steps is not None:
-        dt = T/steps
-
-
-    if covariance is not None:
-        covariance = covariance
-        (n,m) = np.shape(covariance)
-        assert n==m, "covariance must square"
-        assert np.all(np.linalg.eigvals(covariance) >= 0), "covariance is not positive definite"
-        dimension = n
-        target_dimension = n
-        S = np.linalg.cholesky(covariance)
-    else:
-        covariance = np.identity(dimension)
-        S = covariance
-        target_dimension = dimension
-
-    if mixing_matrix is not None:
-        S = mixing_matrix
-        (n,m) = np.shape(S)
-        covariance = S @ S.T
-        dimension = m
-        target_dimension = n
-
-    sqdt = np.sqrt(dt)
-    t = np.linspace(0,T,steps+1)
-    X = np.zeros((samples,target_dimension,steps+1))
+    X = res["X"]
+    t = res["t"]
+    D = res["N"]
 
     if initial_condition is None:
-        initial_condition = np.ones(target_dimension)
+        if D > 1:
+            x0 = np.ones(D)
+        else:
+            x0 = 1
+    else:
+        if D > 1:
+            if not hasattr(initial_condition,'__len__'):
+                x0 = initial_condition * np.ones(D)
+            else:
+                x0 = initial_condition
+        else:
+            x0 = initial_condition
+        
+    if D > 1:
+        if not hasattr(mu,'__len__'):
+            mu = mu * np.ones(D)
+        
+        if not hasattr(sigma,'__len__'):
+            sigma = sigma * np.ones(D)
+                        
+        for i in range(D):
+            X[:,i,:] = x0[i]*np.exp( ( mu[i] ) * t + sigma[i]*X[:,i,:])
+    else:    
+        X = x0 * np.exp( (mu - 0.5*sigma**2)*t + sigma*X)
+    
+    steps = res["steps"]
+    
+    if gap > 1:
+        t = t[np.arange(0,steps+1,gap)]
+        X = X[:,:,np.arange(0,steps+1,gap)]
+        savedsteps = int((steps+1)/gap)
+    else:
+        savedsteps = steps
+        
+    
+    gront = np.sum (X,axis=1)
 
-    for i in range(samples):
-        x = np.zeros((target_dimension,steps+1))
-        dw = S @ np.random.randn(dimension, steps+1)
+    res["X"] = X / gront[:,None,:]
+    res["t"] = t
+    res["mu"] = mu
+    res["sigma"] = sigma
+    res["tau"] = tau
+    res["N"] = N
+    res["initial_condition"] = x0
+    return res
 
-        x[:,0] = initial_condition
-
-        for j in range(steps):
-            x[:,j+1] = x[:,j] + theta * x[:,j] * (1 - x[:,j]) * sqdt * dw[:,j]
-
-        X[i] = x
-
-    return {
-            'timescale': timescale,
-            'noise_covariance': covariance,
-            'steps': steps,
-            'dt': dt,
-            't': t,
-            'X': X
-            }
-
-def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,initial_condition=None,ou_initial_condition=None,**kwargs):
-    r"""
+def exponential_ornstein_uhlenbeck(T,dt,mean=1,coeff_var=1,**kwargs):
+    """
     Generates a non-negative, multivariate stochastic process
     :math:`X(t)` that is the exponential of an Ornstein-Uhlenbeck
     Process :math:`Z(t)` like so
@@ -761,15 +1235,6 @@ def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,initial_condition=None
         Desired mean of the resulting realizations.
     coeff_var : float, default = 1
         Desired coefficient of variation of the resulting realizations.
-    initial_condition : str or numpy.ndarray, default = None
-        If ``initial_condition is None``, process will be initiated at X = A.
-        If ``initial_condition == 'stationary'``, initial conditions will be drawn from stationary distribution.
-        Else, process will be initiated as ``X[:,0] = initial_condition``.
-    ou_initial_condition : str or numpy.ndarray, default = None
-        If ``initial_condition is None``, process will be initiated at Z = 0.
-        If ``initial_condition == 'stationary'``, initial conditions will be drawn from stationary distribution.
-        Else, process will be initiated as ``Z[:,0] = ou_initial_condition``.
-        Will override ``initial_condition`` if provided.
     **kwargs
         Additional keyword arguments that will be passed
         to :func:`stopro.stopro.ornsteinuhlenbeck`.
@@ -799,23 +1264,18 @@ def exponential_ornsteinuhlenbeck(T,dt,mean=1,coeff_var=1,initial_condition=None
     the result. Check out :func:`stopro.stopro.ornsteinuhlenbeck` for more information
     about function parameters.
     """
+    
+    
     A = mean / np.sqrt(1+coeff_var**2)
     B = np.sqrt(np.log(1+coeff_var**2))
 
-    assert( not ((initial_condition is not None) and (ou_initial_condition is not None)), "please provide either initial conditions in OU space OR exponential OU space, not both")
+    res = ornstein_uhlenbeck(T,dt,**kwargs)
+    X=res["X"];
+    
+    A = mean / np.sqrt(1+coeff_var**2)
+    B = np.sqrt(np.log(1+coeff_var**2))
 
-    if ou_initial_condition is None and initial_condition is not None:
-        if initial_condition == 'stationary':
-            ou_initial_condition = 'stationary'
-        else:
-            if not hasattr(initial_condition,'__len__'):
-                initial_condition = [initial_condition]
-
-            ou_initial_condition = 1/B * np.log(np.array(initial_condition)/A)
-
-    res = ornsteinuhlenbeck(T,dt,initial_condition=ou_initial_condition,**kwargs)
-
-    res["X"] = A*np.exp(B*res["X"])
+    res["X"] = A[None,:,None]*np.exp(B[None,:,None]*X)
 
     res["mean"] = mean
     res["coeff_var"] = coeff_var

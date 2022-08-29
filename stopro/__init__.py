@@ -16,9 +16,13 @@ from .metadata import (
 
 from .stopro import (
         wiener,
-        ornsteinuhlenbeck,
-        exponential_ornsteinuhlenbeck,
-        multiplicative_white_noise,
-        noisy_logistic_growth,
+        ornstein_uhlenbeck,
+        exponential_ornstein_uhlenbeck,
+        gillespie_replicator,
+        kimura_replicator,
+        stochastic_replicator,
+        colored_stochastic_replicator,
         geometric_brownian_motion,
+        colored_geometric_brownian_motion,
+        integrated_ornstein_uhlenbeck,
     )

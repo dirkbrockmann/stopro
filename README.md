@@ -2,16 +2,21 @@
 
 A python package for generating common multivariate stochastic processes:
 
-1. the Wiener process
-2. the Ornstein-Uhlenbeck process
-3. the exponential Ornstein-Uhlenbeck processes
-4. Multiplicative White Noise
-5. Noisy Logistic Growth
-6. Geometric Brownian Motion
+1. Wiener process
+2. Ornstein-Uhlenbeck process
+3. Integrated Ornstein-Uhlenbeck process
+4. Exponential Ornstein-Uhlenbeck process
+5. Geometric Brownian Motion
+6. Colored Geometric Brownian Motion
+7. Gillespie Replicator
+8. Kimura Replicator
+9. Stochastic Replicator
+10. Colored Stochastic Replicator
 
-You can find documentation and examples in the [Jupyter notebook documentation_and_examples.ipynb](https://github.com/dirkbrockmann/processes/blob/main/documentation_and_examples.ipynb) that comes with the package. 
+
+You can find documentation and examples in the Jupyter notebooks in the ``examples`` directory.
 
 ## Download & Install
 
-    git clone git@github.com:dirkbrockmann/processes.git
-    pip install ./processes
+    git clone git@github.com:dirkbrockmann/stopro.git
+    pip install ./stopro
