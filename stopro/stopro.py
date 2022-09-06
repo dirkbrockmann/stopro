@@ -1266,17 +1266,21 @@ def exponential_ornstein_uhlenbeck(T,dt,mean=1,coeff_var=1,**kwargs):
     """
 
 
+    if isinstance(coeff_var,(float, int)):
+        N = 1
+    else:
+        N = len(coeff_var)
+
     A = mean / np.sqrt(1+coeff_var**2)
     B = np.sqrt(np.log(1+coeff_var**2))
 
-    res = ornstein_uhlenbeck(T,dt,**kwargs)
-    X=res["X"];
+    res = ornstein_uhlenbeck(T,dt,N=N,**kwargs)
 
-    A = mean / np.sqrt(1+coeff_var**2)
-    B = np.sqrt(np.log(1+coeff_var**2))
-    
+    X=res["X"] ;
+
     if isinstance(coeff_var,np.ndarray):
         res["X"] = A[None,:,None]*np.exp(B[None,:,None]*X)
+
     elif isinstance(coeff_var,(float, int)):
         res["X"] = A*np.exp(B*X)
 
