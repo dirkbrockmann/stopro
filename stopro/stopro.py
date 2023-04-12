@@ -3,8 +3,7 @@
 Contains functions simulating elementary stochastic processes.
 """
 # add brownian bridge
-# fehler in colored dings
-# fehler in colored geometric borwnian motion
+
 import numpy as np
 
 def wiener(T,dt,gap=1,N=1,samples=1,covariance=None,mixing_matrix=None,steps=None):
