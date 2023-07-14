@@ -5,6 +5,7 @@ Contains functions simulating elementary stochastic processes.
 # add brownian bridge
 
 import numpy as np
+from math import inf
 
 def wiener(T,dt,gap=1,N=1,samples=1,covariance=None,mixing_matrix=None,steps=None):
 
@@ -263,8 +264,13 @@ def ornstein_uhlenbeck(T,
                 theta = theta * np.ones(N)
             if not hasattr(sigma,'__len__'):
                 sigma = sigma * np.ones(N)
-        timescale = 1 / theta
-        stdev = sigma / np.sqrt (2 * theta)
+        try:
+            timescale = 1 / theta
+            stdev = sigma / np.sqrt (2 * theta)
+        except ZeroDivisionError:
+            timescale = inf
+            stdev = inf
+        
     else:
         if N > 1:
             if not hasattr(timescale,'__len__'):
@@ -302,6 +308,9 @@ def ornstein_uhlenbeck(T,
     elif initial_condition is None:
         initial_condition = np.zeros(N)
 
+    
+    if stationary == True and (0 in np.array(theta)):
+        raise ValueError(f"stationary initial conditions AND theta=0 doesn't work!!")
     for i in range(samples):
         x = np.zeros((N,steps+1))
         dw = S @ np.random.randn(M, steps+1)
@@ -555,9 +564,9 @@ def colored_geometric_brownian_motion(T,
                       ):
 
     """
-    Generates realizations of multivariate, geometric Brownian motion (GBM)
+    Generates realizations of multivariate, colored geometric Brownian motion (cGBM)
 
-    GBM is the solution to the SDE
+    cGBM is the solution to the SDE
 
     .. math::
 
@@ -944,7 +953,7 @@ def kimura_replicator(T,dt,
             'savedsteps': savedsteps,
             }
 
-def stochastic_replicator(T,
+def white_replicator(T,
                       dt,
                       N=2,
                       initial_condition=None,
@@ -954,7 +963,7 @@ def stochastic_replicator(T,
                       ):
 
     """
-    Generates realizations :math:`Y(t)` of a multivariate, stochastic replicator model:
+    Generates realizations :math:`Y(t)` of a multivariate, white noise replicator model:
 
     .. math::
 
@@ -1074,7 +1083,7 @@ def stochastic_replicator(T,
 
     return res
 
-def colored_stochastic_replicator(T,
+def colored_replicator(T,
                       dt,
                       N=2,
                       mu=1.0,
@@ -1084,7 +1093,7 @@ def colored_stochastic_replicator(T,
                       **kwargs):
 
     """
-    Generates realizations :math:`Y(t)` of a multivariate, stochastic replicator model:
+    Generates realizations :math:`Y(t)` of a multivariate, colored stochastic replicator model:
 
     .. math::
 
