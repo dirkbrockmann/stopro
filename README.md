@@ -10,8 +10,8 @@ A python package for generating common multivariate stochastic processes:
 6. Colored Geometric Brownian Motion
 7. Gillespie Replicator
 8. Kimura Replicator
-9. Stochastic Replicator
-10. Colored Stochastic Replicator
+9. White Replicator
+10. Colored Replicator
 
 
 You can find documentation and examples in the Jupyter notebooks in the ``examples`` directory.
