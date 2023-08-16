@@ -25,4 +25,5 @@ from .stopro import (
         geometric_brownian_motion,
         colored_geometric_brownian_motion,
         integrated_ornstein_uhlenbeck,
+        moran
     )

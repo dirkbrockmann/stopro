@@ -7,6 +7,10 @@ Contains functions simulating elementary stochastic processes.
 import numpy as np
 from math import inf
 
+def wiener_differential(dt,steps=1,**kwargs):
+    return wiener(T,None,steps=steps,**kwargs)
+
+
 def wiener(T,dt,gap=1,N=1,samples=1,covariance=None,mixing_matrix=None,steps=None):
 
     """
@@ -1296,3 +1300,97 @@ def exponential_ornstein_uhlenbeck(T,dt,mean=1,coeff_var=1,**kwargs):
     res["coeff_var"] = coeff_var
 
     return res
+
+
+def moran(T,population_size,N=2,alpha=1,normalize=False,initial_condition=None,samples=1):
+
+    """
+    Generates realizations of the multispecies, stochasic Moran process of a population of individuals of N different species
+    that interact according to the following reaction scheme:
+    .. math::
+
+        X_i + X_j \rightarrow 2X_i \quad \text{at rate} \quad \alpha_i 
+
+    Parameters
+    ----------
+    T : float
+        Time interval.
+    population_size : int
+        Total population size, i.e. the number of individuals altogether
+    N : int, default 2
+        Number of species, must be > 1.
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
+        If ``initial_condition is None``, process will be initiated at X_i = population_size/N.
+        Else, process will be initiated as ``X = initial_condition``.
+    alpha : float or numpy.ndarray of shape (``N``,), default = 1
+        Replication rate of species
+    samples : int, default = 1
+        The number of samples generated
+    normalize : boolean, default = False
+        If True returns fractions of the population, instead of absolute numbers
+
+    Returns
+    -------
+    result : dict
+
+        Result in the following structure:
+
+    .. code:: python
+
+            {
+                'Xt': 'tuple of size samples, each element contains pair (t,X) with array of times and vector X of species abundance'
+                'samples': 'int, number of realizations',
+                'N': 'int, number of species',
+                'initial_condition': 'initial condition',
+                'population_size': 'population size',
+                'alpha': 'vector with replication rates of species'
+                
+            }
+
+    """
+
+    V = [(x,y) for x in range(N) for y in range(N)]
+
+    Xt=[]
+    
+    if normalize: 
+        M = population_size
+    else:
+        M = 1
+    
+    if initial_condition is None:
+        n0 = [int(population_size/N)] * N;
+    else:
+        n0 = initial_condition
+        
+    for i in range(samples):
+            
+        n = n0.copy();
+        
+        t = [0];
+        X = [np.array(n.copy())/M];
+    
+        while t[-1] < T:        
+            r = (np.outer(alpha*n,n)/population_size).flatten();
+            rtot = np.sum(r)
+            P = r/rtot;
+            dt = np.random.exponential(1.0/rtot);
+            t.append(t[-1]+dt)
+            dn = V[np.random.choice(range(N*N),p = P)];
+
+            n[dn[0]]+=1;
+            n[dn[1]]-=1;
+            X.append(np.array(n.copy())/M)
+        
+        Xt.append((t,np.array(X).T))
+        
+    return {
+            'initial_condition': initial_condition,
+            'samples':samples,
+            'alpha': alpha,
+            'N' : N,
+            'Xt':Xt,
+            'population_size': population_size,
+            }
+
+

@@ -12,6 +12,7 @@ A python package for generating common multivariate stochastic processes:
 8. Kimura Replicator
 9. White Replicator
 10. Colored Replicator
+11. Multispecies Moran Process
 
 
 You can find documentation and examples in the Jupyter notebooks in the ``examples`` directory.
