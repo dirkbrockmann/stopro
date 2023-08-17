@@ -7,9 +7,6 @@ Contains functions simulating elementary stochastic processes.
 import numpy as np
 from math import inf
 
-def wiener_differential(dt,steps=1,**kwargs):
-    return wiener(T,None,steps=steps,**kwargs)
-
 
 def wiener(T,dt,gap=1,N=1,samples=1,covariance=None,mixing_matrix=None,steps=None):
 
@@ -1302,52 +1299,8 @@ def exponential_ornstein_uhlenbeck(T,dt,mean=1,coeff_var=1,**kwargs):
     return res
 
 
-def moran(T,population_size,N=2,alpha=1,normalize=False,initial_condition=None,samples=1):
 
-    """
-    Generates realizations of the multispecies, stochasic Moran process of a population of individuals of N different species
-    that interact according to the following reaction scheme:
-    .. math::
-
-        X_i + X_j \rightarrow 2X_i \quad \text{at rate} \quad \alpha_i 
-
-    Parameters
-    ----------
-    T : float
-        Time interval.
-    population_size : int
-        Total population size, i.e. the number of individuals altogether
-    N : int, default 2
-        Number of species, must be > 1.
-    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
-        If ``initial_condition is None``, process will be initiated at X_i = population_size/N.
-        Else, process will be initiated as ``X = initial_condition``.
-    alpha : float or numpy.ndarray of shape (``N``,), default = 1
-        Replication rate of species
-    samples : int, default = 1
-        The number of samples generated
-    normalize : boolean, default = False
-        If True returns fractions of the population, instead of absolute numbers
-
-    Returns
-    -------
-    result : dict
-
-        Result in the following structure:
-
-    .. code:: python
-
-            {
-                'Xt': 'tuple of size samples, each element contains pair (t,X) with array of times and vector X of species abundance'
-                'samples': 'int, number of realizations',
-                'N': 'int, number of species',
-                'initial_condition': 'initial condition',
-                'population_size': 'population size',
-                'alpha': 'vector with replication rates of species'
-                
-            }
-
-    """
+def moran_particle_dynamics(T,population_size,N=2,alpha=1,normalize=False,initial_condition=None,samples=1):
 
     V = [(x,y) for x in range(N) for y in range(N)]
 
@@ -1394,3 +1347,115 @@ def moran(T,population_size,N=2,alpha=1,normalize=False,initial_condition=None,s
             }
 
 
+
+
+def moran_diffusion_approximation(T,dt,population_size,N=2,alpha=1,normalize=False,initial_condition=None,samples=1):
+
+    if initial_condition is None:
+        x0 = [ 1.0/N ] * N;
+    else:
+        x0 = initial_condition
+    
+    if normalize:
+        M = 1
+    else:
+        M = population_size
+
+    if np.isscalar(alpha):
+        alpha=np.array([alpha] * N);
+    
+    alpha = np.array(alpha);
+    Xt=[]
+    
+    for i in range(samples):
+        t = [0]
+        x = x0.copy()
+
+        X = [x.copy()*M]
+        
+        while t[-1] < T:
+            W = np.random.normal(size=(N,N))
+            Q = alpha*W-(alpha*W).T
+            S = np.sqrt(np.outer(x,x)) * Q * np.sqrt(dt/population_size)
+            phi = np.sum(x*alpha);
+            dx = x*(alpha-phi)*dt + np.sum(S,axis=0);
+            x += dx;
+            x[x<0] = 0
+            t.append(t[-1]+dt)
+            X.append(x.copy()*M)
+        
+        Xt.append((t,np.array(X).T))
+        
+    return {
+            'dt':dt,
+            'initial_condition': initial_condition,
+            'normalize':normalize,
+            'samples':samples,
+            'alpha': alpha,
+            'N' : N,
+            'Xt':Xt,
+            'population_size': population_size,
+            }
+    
+    
+
+def moran(T,population_size,diffusion_approximation=False,**kwargs):
+    """
+    Generates realizations of the multispecies, stochasic Moran process of a population of individuals of N different species
+    that interact according to the following reaction scheme:
+    .. math::
+
+        X_i + X_j \rightarrow 2X_i \quad \text{at rate} \quad \alpha_i 
+
+    Parameters
+    ----------
+    T : float
+        Time interval.
+    population_size : int
+        Total population size, i.e. the number of individuals altogether
+    N : int, default 2
+        Number of species, must be > 1.
+    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
+        If ``initial_condition is None``, process will be initiated at X_i = population_size/N.
+        Else, process will be initiated as ``X = initial_condition``.
+    alpha : float or numpy.ndarray of shape (``N``,), default = 1
+        Replication rate of species
+    samples : int, default = 1
+        The number of samples generated
+    normalize : boolean, default = False
+        If True returns fractions of the population, instead of absolute numbers
+    diffusion_approximation: False
+        If True computes the realizations of the diffusion approximation process for the system
+    dt: float
+        Needs to be specified if the diffusion approximation is used. This is the time increment in that
+        case
+
+    Returns
+    -------
+    result : dict
+
+        Result in the following structure:
+
+    .. code:: python
+
+            {
+                'Xt': 'tuple of size samples, each element contains pair (t,X) with array of times and vector X of species abundance'
+                'samples': 'int, number of realizations',
+                'N': 'int, number of species',
+                'initial_condition': 'initial condition',
+                'population_size': 'population size',
+                'alpha': 'vector with replication rates of species',
+                'diffusion_approximation': 'True/False depending on if diffusion approxmation is used'
+                
+            }
+
+    """    
+    if diffusion_approximation:
+        dt = kwargs['dt']
+        kwargs.pop('dt')
+        res = moran_diffusion_approximation(T,dt,population_size,**kwargs)
+    else:
+        res = moran_particle_dynamics(T,population_size,**kwargs)
+
+    res['diffusion_approximation']=diffusion_approximation
+    return res
