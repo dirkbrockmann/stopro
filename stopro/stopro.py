@@ -6,7 +6,8 @@ Contains functions simulating elementary stochastic processes.
 
 import numpy as np
 from math import inf
-
+from math import isinf
+from scipy.integrate import odeint
 
 def wiener(T,dt,gap=1,N=1,samples=1,covariance=None,mixing_matrix=None,steps=None):
 
@@ -1298,110 +1299,66 @@ def exponential_ornstein_uhlenbeck(T,dt,mean=1,coeff_var=1,**kwargs):
 
     return res
 
-
-
-def moran_particle_dynamics(T,population_size,N=2,alpha=1,normalize=False,initial_condition=None,samples=1):
-
+def moran_particle_dynamics(n0,T,alpha):
+    
+    N = len(n0)
+    system_size = np.sum(n0)
+   
+    
     V = [(x,y) for x in range(N) for y in range(N)]
+                    
+    t = [0]
+    X = [tuple(n0)]
+    
+    n = list(n0)
+    
+    while t[-1] < T:        
+        r = (np.outer(alpha*n,n)/system_size).flatten();
+        rtot = np.sum(r)
+        P = r/rtot;
+        dt = np.random.exponential(1.0/rtot);
+        t.append(t[-1]+dt)
+        dn = V[np.random.choice(range(N*N),p = P)];
 
-    Xt=[]
+        n[dn[0]]+=1;
+        n[dn[1]]-=1;
+        X.append(tuple(n))
     
-    if normalize: 
-        M = population_size
-    else:
-        M = 1
+    return (t,X)
     
-    if initial_condition is None:
-        n0 = [int(population_size/N)] * N;
-    else:
-        n0 = initial_condition
+    
+def moran_diffusion_approximation(n0,T,alpha,dt):
+    
+    N = len(n0)
+    system_size = np.sum(n0)
+    
+    t = [0]
+    X = [tuple(n0)]
+    
+    n = list(n0)
         
-    for i in range(samples):
-            
-        n = n0.copy();
-        
-        t = [0];
-        X = [np.array(n.copy())/M];
+    while t[-1] < T:
+        W = np.random.normal(size=(N,N))
+        Q = alpha*W-(alpha*W).T
+        S = np.sqrt(np.outer(n,n)) * Q * np.sqrt(dt/system_size)
+        phi = np.sum(n*alpha/system_size);
+        dn = n*(alpha-phi)*dt + np.sum(S,axis=0);
+        n += dn;
+        n[n<0] = 0
+        t.append(t[-1]+dt)
+        X.append(tuple(n))
     
-        while t[-1] < T:        
-            r = (np.outer(alpha*n,n)/population_size).flatten();
-            rtot = np.sum(r)
-            P = r/rtot;
-            dt = np.random.exponential(1.0/rtot);
-            t.append(t[-1]+dt)
-            dn = V[np.random.choice(range(N*N),p = P)];
-
-            n[dn[0]]+=1;
-            n[dn[1]]-=1;
-            X.append(np.array(n.copy())/M)
-        
-        Xt.append((t,np.array(X).T))
-        
-    return {
-            'initial_condition': initial_condition,
-            'samples':samples,
-            'alpha': alpha,
-            'N' : N,
-            'Xt':Xt,
-            'population_size': population_size,
-            }
-
-
-
-
-def moran_diffusion_approximation(T,dt,population_size,N=2,alpha=1,normalize=False,initial_condition=None,samples=1):
-
-    if initial_condition is None:
-        x0 = [ 1.0/N ] * N;
-    else:
-        x0 = initial_condition
+    return (t,X)
     
-    if normalize:
-        M = 1
-    else:
-        M = population_size
-
-    if np.isscalar(alpha):
-        alpha=np.array([alpha] * N);
-    
-    alpha = np.array(alpha);
-    Xt=[]
-    
-    for i in range(samples):
-        t = [0]
-        x = x0.copy()
-
-        X = [x.copy()*M]
-        
-        while t[-1] < T:
-            W = np.random.normal(size=(N,N))
-            Q = alpha*W-(alpha*W).T
-            S = np.sqrt(np.outer(x,x)) * Q * np.sqrt(dt/population_size)
-            phi = np.sum(x*alpha);
-            dx = x*(alpha-phi)*dt + np.sum(S,axis=0);
-            x += dx;
-            x[x<0] = 0
-            t.append(t[-1]+dt)
-            X.append(x.copy()*M)
-        
-        Xt.append((t,np.array(X).T))
-        
-    return {
-            'dt':dt,
-            'initial_condition': initial_condition,
-            'normalize':normalize,
-            'samples':samples,
-            'alpha': alpha,
-            'N' : N,
-            'Xt':Xt,
-            'population_size': population_size,
-            }
-    
-    
-
-def moran(T,population_size,diffusion_approximation=False,**kwargs):
+def moran(T,n0,alpha,
+          system_size=None,
+          diffusion_approximation=False,
+          dt=None, 
+          normalize=False,
+          samples=1):
     """
-    Generates realizations of the multispecies, stochasic Moran process of a population of individuals of N different species
+    Generates realizations of the multispecies, stochasic Moran process of 
+    a population of individuals of M different species
     that interact according to the following reaction scheme:
     .. math::
 
@@ -1411,51 +1368,58 @@ def moran(T,population_size,diffusion_approximation=False,**kwargs):
     ----------
     T : float
         Time interval.
-    population_size : int
+    n0: numpy.ndarray of shape (``M``,)
+        Initial abundances / fractions of species
+    system_size : int or None or inf, default is None
         Total population size, i.e. the number of individuals altogether
-    N : int, default 2
-        Number of species, must be > 1.
-    initial_condition : str or numpy.ndarray of shape (``N``,), default = None
-        If ``initial_condition is None``, process will be initiated at X_i = population_size/N.
-        Else, process will be initiated as ``X = initial_condition``.
-    alpha : float or numpy.ndarray of shape (``N``,), default = 1
+        If inf deterministic solution is found, required additional keyword dt to be set
+    alpha : numpy.ndarray of shape (``N``,), default = 1
         Replication rate of species
     samples : int, default = 1
-        The number of samples generated
+        The number of samples generated, ignored if system_size = inf (deterministic system)
     normalize : boolean, default = False
-        If True returns fractions of the population, instead of absolute numbers
+        If True returns fractions of the population, instead of absolute abundance
+        It True n0 will be automatically rescaled to be normalized to unity
     diffusion_approximation: False
         If True computes the realizations of the diffusion approximation process for the system
+        requires to set keyword dt
     dt: float
         Needs to be specified if the diffusion approximation is used. This is the time increment in that
         case
 
     Returns
     -------
-    result : dict
+    result : numpy.ndarray:
+        each array element is a sample, each sample is a tuple (t,X) or time array t and array of state vectors X.
+    
 
-        Result in the following structure:
-
-    .. code:: python
-
-            {
-                'Xt': 'tuple of size samples, each element contains pair (t,X) with array of times and vector X of species abundance'
-                'samples': 'int, number of realizations',
-                'N': 'int, number of species',
-                'initial_condition': 'initial condition',
-                'population_size': 'population size',
-                'alpha': 'vector with replication rates of species',
-                'diffusion_approximation': 'True/False depending on if diffusion approxmation is used'
-                
-            }
-
-    """    
-    if diffusion_approximation:
-        dt = kwargs['dt']
-        kwargs.pop('dt')
-        res = moran_diffusion_approximation(T,dt,population_size,**kwargs)
+    """ 
+    
+    if system_size is not None:
+        if isinf(system_size):
+            rep = lambda x,t,a : x*(a-np.sum(a*x))
+            x0 = np.array(n0/np.sum(n0))
+            t = np.linspace(0,T,int(T/dt))
+            sol = odeint(rep,x0,t,args=(alpha,))
+            X = [tuple(v) for v in sol]
+            return (t,X)
+        else:
+            normalize = True
+            x0 = n0/np.sum(n0)
+            n0 = system_size*x0
+            n0 = n0.astype(int)
+            print(n0)
     else:
-        res = moran_particle_dynamics(T,population_size,**kwargs)
-
-    res['diffusion_approximation']=diffusion_approximation
+        n0 = n0.astype(int)
+        system_size = np.sum(n0)
+        
+    if diffusion_approximation:
+        res = [moran_diffusion_approximation(n0,T,alpha,dt) for i in range(samples)]
+    else:
+        res = [moran_particle_dynamics(n0,T,alpha) for i in range(samples)]
+    
+    if normalize:
+        for i in range(len(res)):
+            res[i]=(res[i][0],[tuple(list(v)/sum(v)) for v in res[i][1]])
+    
     return res
