@@ -13,6 +13,7 @@ A python package for generating common multivariate stochastic processes:
 9. White Replicator
 10. Colored Replicator
 11. Multispecies Moran Process (discrete particle kinetics & diffusion approximation)
+12. Competitive Lotka Volterra Process (discrete particle kinetics & diffusion approximation)
 
 
 You can find documentation and examples in the Jupyter notebooks in the ``examples`` directory.
