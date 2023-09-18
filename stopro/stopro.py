@@ -1439,6 +1439,7 @@ def clv_particle_dynamics(n0,T,alpha,beta,omega):
         beta_mean = np.sum(n*beta_i)/omega
         alpha_mean = np.sum(n*alpha)/omega
         rtot = omega*(alpha_mean+beta_mean)
+
         P1 = (alpha+beta_i)*n/rtot
         dt = np.random.exponential(1.0/rtot)
         t.append(t[-1]+dt)
@@ -1474,6 +1475,7 @@ def clv_diffusion_approximation(n0,T,alpha,beta,omega,dt):
     return (t,X)
 
 def competitive_lotka_volterra(T,x0,alpha,beta,system_size,
+                               
           diffusion_approximation=False,
           normalize=False, 
           dt=None,                     
@@ -1545,3 +1547,127 @@ def competitive_lotka_volterra(T,x0,alpha,beta,system_size,
             res[i]=(res[i][0],[tuple(np.array(v)/system_size) for v in res[i][1]])
         
     return res
+
+def stochastic_clv_particle_dynamics(n0, T, alpha, beta, omega, dt, sigma, A, timescale):
+    N = len(n0)
+    t = [0]
+    X = [tuple(n0)]
+    n = n0.copy()
+    
+    alpha = exponential_ornstein_uhlenbeck(T = T, dt = dt, coeff_var = sigma, mixing_matrix = A, mean = alpha, timescale = timescale)['X'][0]
+    
+    while t[-1] < T:
+        
+        beta_i =  n * (beta@n)/omega
+        alpha_i = n[:,None] * alpha
+        rtot = np.sum(alpha_i, axis = 0) + np.sum(beta_i)
+        
+        integral = dt * np.cumsum(rtot)
+        r = np.random.exponential(1)
+        _dt = np.argmax(integral > r) + 1
+        if np.sum(integral > r) == 0 : break 
+        
+        P1 = (alpha_i[:,_dt]+beta_i)/rtot[_dt]
+        selected_species = np.random.choice(range(N),p = P1)
+        P2 = alpha_i[selected_species,_dt]/(alpha_i[selected_species,_dt]+beta_i[selected_species])
+        
+        if (np.random.rand() < P2):
+            n[selected_species]+=1
+        else:
+            n[selected_species]-=1
+
+        alpha = alpha[:,_dt:]
+        t.append(t[-1]+_dt*dt)
+        X.append(tuple(n))
+    
+    return (t,X)
+
+def stochastic_competitive_lotka_volterra(T, x0, alpha, beta, omega, dt, sigma, A,timescale,samples=1):
+    """
+    Generates realizations of the multispecies, stochasic competitve Lokta-Volterra Model 
+    of a population of individuals of M different species 
+    that replicate and compete to the following reaction scheme:
+    .. math::
+        X_i \rightarrow 2X_i \quad \text{at rate} \quad \alpha_i 
+
+    .. math::
+        X_i + X_j \rightarrow 2X_j \quad \text{at rate} \quad \beta_{ij}/Omega 
+
+    The parameter Omega is the system size
+    Parameters
+    ----------
+    T : float
+        Time interval.
+    x0: numpy.ndarray of shape (``M``,)
+        Initial state, depending on the state_variable keyword (below) this is abundance,
+        density, fraction, or capacitance
+    alpha : numpy.ndarray of shape (``N``,)
+        Replication rates of species
+    beta : numpy.ndarray of shape (``N``,``N``)
+        Competition rate between species
+    system_size : int or inf
+        System size, i.e. a measure for the approximate total abundance of species,
+        it's the normalization of the competitive rate that makes sure beta is of the order of unity
+        If inf deterministic solution is computed, required additional keyword dt to be set
+    diffusion_approximation: True/False, default is False
+        If True computes the realizations of the diffusion approximation process for the system
+        requires to set keyword dt
+    normalize : boolean, default = False
+        If True normalizes state variable with system_size parameter Omega
+    samples : int, default = 1
+        The number of samples generated, ignored if system_size = inf (deterministic system)
+    dt: float
+        Needs to be specified if the diffusion approximation is used. This is the time increment in that
+        case
+
+    Returns
+    -------
+    result : numpy.ndarray:
+        each array element is a sample, each sample is a tuple (t,X) or time array t and array of state vectors X.
+    
+
+    """ 
+    n0 = x0
+                
+    res = [stochastic_clv_particle_dynamics(n0, T, alpha, beta, omega, dt, sigma, A,timescale ) for i in range(samples)]
+        
+    return res
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    n0 = np.array([50,50,50])
+    omega = 200
+    alpha = np.array([1,1,1]) 
+    beta =  np.random.rand(3,3)+0.5
+    T = 30
+    dt = 0.05
+    samples = 10
+    N = 3
+    timescale = 10
+    A = None
+    sigma = np.ones(N)*1
+
+    res = competitive_lotka_volterra(T,n0,alpha,beta,omega,samples=samples)
+    res_da = competitive_lotka_volterra(T,n0,alpha,beta,omega,samples=samples,diffusion_approximation=True,dt=dt)
+    res_st = stochastic_competitive_lotka_volterra(T*10, n0, alpha, beta, omega, dt, sigma, A,timescale,samples)
+    
+    fig,ax = plt.subplots(1,3,figsize=[12,4],sharey = True)
+
+    for i in range(len(n0)):
+        
+        for s in range(samples):
+            t = res[s][0]
+            X = np.array(res[s][1]).T    
+            ax[0].plot(t,X[i],color='C'+str(i),alpha=0.4)
+        
+        for s in range(samples):
+            t = res_da[s][0]
+            X = np.array(res_da[s][1]).T    
+            ax[1].plot(t,X[i],color='C'+str(i),alpha=0.4)
+            
+        for s in range(samples):
+            t = res_st[s][0]
+            X = np.array(res_st[s][1]).T    
+            ax[2].plot(t,X[i],color='C'+str(i),alpha=0.4)
+    plt.show()

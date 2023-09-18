@@ -26,5 +26,6 @@ from .stopro import (
         colored_geometric_brownian_motion,
         integrated_ornstein_uhlenbeck,
         moran,
-        competitive_lotka_volterra
+        competitive_lotka_volterra,
+        stochastic_competitive_lotka_volterra
     )
