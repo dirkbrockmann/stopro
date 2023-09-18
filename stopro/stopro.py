@@ -1582,55 +1582,22 @@ def stochastic_clv_particle_dynamics(n0, T, alpha, beta, omega, dt, sigma, A, ti
     
     return (t,X)
 
-def stochastic_competitive_lotka_volterra(T, x0, alpha, beta, omega, dt, sigma, A,timescale,samples=1):
-    """
-    Generates realizations of the multispecies, stochasic competitve Lokta-Volterra Model 
-    of a population of individuals of M different species 
-    that replicate and compete to the following reaction scheme:
-    .. math::
-        X_i \rightarrow 2X_i \quad \text{at rate} \quad \alpha_i 
+def stochastic_competitive_lotka_volterra(T, x0, alpha, beta, system_size, dt, sigma, A,timescale,
+                                          normalize=False, 
+                                          samples=1):
+   
+    if normalize:
+        n0 = system_size*x0
+        n0 = n0.astype(int)
+    else:
+        n0 = x0
 
-    .. math::
-        X_i + X_j \rightarrow 2X_j \quad \text{at rate} \quad \beta_{ij}/Omega 
-
-    The parameter Omega is the system size
-    Parameters
-    ----------
-    T : float
-        Time interval.
-    x0: numpy.ndarray of shape (``M``,)
-        Initial state, depending on the state_variable keyword (below) this is abundance,
-        density, fraction, or capacitance
-    alpha : numpy.ndarray of shape (``N``,)
-        Replication rates of species
-    beta : numpy.ndarray of shape (``N``,``N``)
-        Competition rate between species
-    system_size : int or inf
-        System size, i.e. a measure for the approximate total abundance of species,
-        it's the normalization of the competitive rate that makes sure beta is of the order of unity
-        If inf deterministic solution is computed, required additional keyword dt to be set
-    diffusion_approximation: True/False, default is False
-        If True computes the realizations of the diffusion approximation process for the system
-        requires to set keyword dt
-    normalize : boolean, default = False
-        If True normalizes state variable with system_size parameter Omega
-    samples : int, default = 1
-        The number of samples generated, ignored if system_size = inf (deterministic system)
-    dt: float
-        Needs to be specified if the diffusion approximation is used. This is the time increment in that
-        case
-
-    Returns
-    -------
-    result : numpy.ndarray:
-        each array element is a sample, each sample is a tuple (t,X) or time array t and array of state vectors X.
-    
-
-    """ 
-    n0 = x0
-                
     res = [stochastic_clv_particle_dynamics(n0, T, alpha, beta, omega, dt, sigma, A,timescale ) for i in range(samples)]
-        
+    
+    if normalize:
+        for i in range(len(res)):
+            res[i]=(res[i][0],[tuple(np.array(v)/system_size) for v in res[i][1]])
+       
     return res
 
 
