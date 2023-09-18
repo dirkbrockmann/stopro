@@ -1582,9 +1582,9 @@ def stochastic_clv_particle_dynamics(n0, T, alpha, beta, omega, dt, sigma, A, ti
     
     return (t,X)
 
-def stochastic_competitive_lotka_volterra(T, x0, alpha, beta, system_size, dt, sigma, A,timescale,
+def stochastic_competitive_lotka_volterra(T, x0, alpha, beta, system_size, dt, sigma, A,timescale,samples,
                                           normalize=False, 
-                                          samples=1):
+                                          ):
    
     if normalize:
         n0 = system_size*x0
@@ -1592,7 +1592,7 @@ def stochastic_competitive_lotka_volterra(T, x0, alpha, beta, system_size, dt, s
     else:
         n0 = x0
 
-    res = [stochastic_clv_particle_dynamics(n0, T, alpha, beta, omega, dt, sigma, A,timescale ) for i in range(samples)]
+    res = [stochastic_clv_particle_dynamics(n0, T, alpha, beta, system_size, dt, sigma, A,timescale ) for i in range(samples)]
     
     if normalize:
         for i in range(len(res)):
