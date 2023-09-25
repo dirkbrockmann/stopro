@@ -27,5 +27,5 @@ from .stopro import (
         integrated_ornstein_uhlenbeck,
         moran,
         competitive_lotka_volterra,
-        stochastic_competitive_lotka_volterra
+
     )
