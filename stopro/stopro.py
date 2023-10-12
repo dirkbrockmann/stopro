@@ -1492,7 +1492,7 @@ def clv_particle_dynamics(n0,T,alpha,beta,omega,
             rtot = np.sum(alpha_i) + np.sum(beta_i)
             tau = np.random.exponential(1.0/rtot)
             t.append(t[-1]+tau)
-            alpha_t = alpha 
+            alpha_t = alpha_i 
             
         P1 = (alpha_t+beta_i)/rtot
         selected_species = np.random.choice(range(N),p = P1)
