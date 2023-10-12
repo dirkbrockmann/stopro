@@ -774,6 +774,9 @@ def gillespie_replicator(T,
 
 
     gront = np.sum (Y,axis=1)
+    if True in np.isnan(gront):
+        print("hello")
+    gront = gront+1e-32
     res["t"] = t
     res["X"] = Y / gront[:,None,:]
 
@@ -935,6 +938,7 @@ def kimura_replicator(T,dt,
             phi = np.sum(r * x[:,j])
             dx = (r-phi)*x[:,j]
             x[:,j+1] = x[:,j] + dx
+            x[:,j+1] = np.where(x[:,j+1]<0, 0, x[:,j+1])
 
         if gap > 1:
             X[i] = x[:,np.arange(0,steps+1,gap)]

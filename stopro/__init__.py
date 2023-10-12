@@ -22,10 +22,11 @@ from .stopro import (
         kimura_replicator,
         white_replicator,
         colored_replicator,
+        colored_replicator as colored_stochastic_replicator,
         geometric_brownian_motion,
         colored_geometric_brownian_motion,
         integrated_ornstein_uhlenbeck,
         moran,
         competitive_lotka_volterra,
-        stochastic_competitive_lotka_volterra
+        competitive_lotka_volterra as stochastic_competitive_lotka_volterra
     )
