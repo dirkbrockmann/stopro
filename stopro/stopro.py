@@ -776,7 +776,7 @@ def gillespie_replicator(T,
     gront = np.sum (Y,axis=1)
     if True in np.isnan(gront):
         print("hello")
-    gront = gront+1e-32
+    gront = gront #+1e-32
     res["t"] = t
     res["X"] = Y / gront[:,None,:]
 
