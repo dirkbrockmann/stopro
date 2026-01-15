@@ -8,6 +8,7 @@ import numpy as np
 from math import inf
 from math import isinf
 from scipy.integrate import odeint
+from scipy.special import logsumexp
 
 def wiener(T,dt,gap=1,N=1,samples=1,covariance=None,mixing_matrix=None,steps=None):
 
@@ -774,13 +775,82 @@ def gillespie_replicator(T,
 
 
     gront = np.sum (Y,axis=1)
-    if True in np.isnan(gront):
-        print("hello")
+    if True in np.isinf(gront):
+        print("ALARM: INF DETECTED IN GRONT")
     gront = gront #+1e-32
     res["t"] = t
     res["X"] = Y / gront[:,None,:]
 
+    print("hello wurst")
+
     return res
+
+def gillespie_replicator_softmax(T,
+                                 dt,
+                                 N=2,
+                                 initial_condition=None,
+                                 **kwargs):
+    """
+    Numerically-stable Gillespie replicator (softmax / logsumexp normalization).
+    Avoids overflow by working in log-space and normalizing with logsumexp across species.
+    """
+    assert N > 1, "The number of species n must be greater than 1"
+
+    mu = kwargs.pop("mu", 1.0)
+    sigma = kwargs.pop("sigma", 1.0)
+    gap = int(kwargs.pop("gap", 1))
+
+    # Normalize initial condition onto simplex
+    if initial_condition is not None:
+        x0 = np.asarray(initial_condition, dtype=float)
+        x0 = x0 / np.sum(x0, axis=0)
+    else:
+        x0 = np.ones(N, dtype=float) / N
+
+    # Generate Wiener driver at full resolution, then subsample at the end
+    res = wiener(T, dt, gap=1, N=N, **kwargs)
+    W = res["X"]          # (samples, N, steps+1)
+    t = res["t"]          # (steps+1,)
+    steps = res["steps"]
+
+    mu = np.asarray(mu, dtype=float)
+    sigma = np.asarray(sigma, dtype=float)
+    if mu.ndim == 0:
+        mu = np.full(N, float(mu))
+    if sigma.ndim == 0:
+        sigma = np.full(N, float(sigma))
+
+    # log(x0); allow zeros -> -inf
+    with np.errstate(divide="ignore"):
+        logx0 = np.where(x0 > 0, np.log(x0), -np.inf)  # (N,)
+
+    drift = (mu - 0.5 * sigma**2)[None, :, None] * t[None, None, :]  # (1, N, steps+1)
+    noise = sigma[None, :, None] * W                                 # (samples, N, steps+1)
+    logX = logx0[None, :, None] + drift + noise                      # (samples, N, steps+1)
+
+    log_denom = logsumexp(logX, axis=1, keepdims=True)                # (samples, 1, steps+1)
+    Y = np.exp(logX - log_denom)                                      # (samples, N, steps+1)
+
+    if gap > 1:
+        idx = np.arange(0, steps + 1, gap)
+        res["t"] = t[idx]
+        res["X"] = Y[:, :, idx]
+        res["savedsteps"] = int((steps + 1) / gap)
+        res["gap"] = gap
+    else:
+        res["t"] = t
+        res["X"] = Y
+        res["savedsteps"] = steps
+        res["gap"] = 1
+
+    res["mu"] = mu
+    res["sigma"] = sigma
+    res["initial_condition"] = x0
+    res["noise_covariance"] = res["covariance"]
+    del res["covariance"]
+
+    return res
+
 
 def kimura_replicator(T,dt,
                     N=2,
