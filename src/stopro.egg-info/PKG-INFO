@@ -1,0 +1,49 @@
+Metadata-Version: 2.4
+Name: stopro
+Version: 0.2.0
+Summary: Stochastic processes in Python
+Author-email: Dirk Brockmann <dirk.brockmann@tu-dresden.de>
+Maintainer-email: Dirk Brockmann <dirk.brockmann@tu-dresden.de>
+License: MIT
+Project-URL: Repository, https://github.com/dirkbrockmann/stopro
+Keywords: stochastic-processes,sde,wiener,ornstein-uhlenbeck
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.22
+Requires-Dist: scipy>=1.9
+Provides-Extra: dev
+Requires-Dist: pytest>=7; extra == "dev"
+Provides-Extra: examples
+Requires-Dist: jupyter; extra == "examples"
+Requires-Dist: matplotlib; extra == "examples"
+Requires-Dist: palettable; extra == "examples"
+Dynamic: license-file
+
+# stopro - Elementary Stochastic Processes
+
+A python package for generating common multivariate stochastic processes:
+
+1. Wiener process
+2. Ornstein-Uhlenbeck process
+3. Integrated Ornstein-Uhlenbeck process
+4. Exponential Ornstein-Uhlenbeck process
+5. Geometric Brownian Motion
+6. Colored Geometric Brownian Motion
+7. Gillespie Replicator
+8. Kimura Replicator
+9. White Replicator
+10. Colored Replicator
+11. Multispecies Moran Process (discrete particle kinetics & diffusion approximation)
+12. Competitive Lotka Volterra Process (discrete particle kinetics & diffusion approximation)
+
+
+You can find documentation and examples in the Jupyter notebooks in the ``examples`` directory.
+
+## Download & Install
+
+    git clone git@github.com:dirkbrockmann/stopro.git
+    pip install ./stopro

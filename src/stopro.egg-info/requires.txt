@@ -1,0 +1,10 @@
+numpy>=1.22
+scipy>=1.9
+
+[dev]
+pytest>=7
+
+[examples]
+jupyter
+matplotlib
+palettable

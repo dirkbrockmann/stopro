@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stopro"
+dynamic = ["version"]
+description = "Stochastic processes in Python"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Dirk Brockmann", email = "dirk.brockmann@tu-dresden.de" }]
+maintainers = [{ name = "Dirk Brockmann", email = "dirk.brockmann@tu-dresden.de" }]
+license = { text = "MIT" }
+
+dependencies = [
+  "numpy>=1.22",
+  "scipy>=1.9",
+]
+
+keywords = ["stochastic-processes", "sde", "wiener", "ornstein-uhlenbeck"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/dirkbrockmann/stopro"
+# Documentation = "https://..."
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7",
+]
+examples = [
+  "jupyter",
+  "matplotlib",
+  "palettable",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = { attr = "stopro.metadata.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
