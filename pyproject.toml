@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=69"]
+requires = ["setuptools>=69","setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -34,11 +34,12 @@ package-dir = { "" = "src" }
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.dynamic]
-version = { attr = "stopro._version.__version__" }
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
 
 [dependency-groups]
 dev = [
@@ -54,24 +55,4 @@ examples = [
   "palettable",
 ]
 
-[tool.bumpver]
-current_version = "2026.1002-alpha"
-version_pattern = "YYYY.BUILD[-TAG]"
-commit_message = "bump version {old_version} -> {new_version}"
-tag_message = "{new_version}"
-tag_scope = "default"
-pre_commit_hook = ""
-post_commit_hook = ""
-commit = true
-tag = true
-push = true
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'current_version = "{version}"',
-]
-"README.md" = [
-    "{version}",
-    "{pep440_version}",
-]
 
