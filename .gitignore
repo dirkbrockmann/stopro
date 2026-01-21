@@ -19,9 +19,9 @@ a.out
 /data/
 /selenium/
 
+
+.ipynb_checkpoints/
 */.ipynb_checkpoints/
-/notebooks/.ipynb_checkpoints/
-/notebooks/results_data/
 
 /py_only_docs/
 /docs/_build/
