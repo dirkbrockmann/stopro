@@ -1,6 +1,23 @@
-from ._version import __version__
+from importlib.metadata import version
 
-__all__ = ["__version__"]
+__version__ = version("stopro")
+
+__all__ = [
+    "wiener",
+    "ornstein_uhlenbeck",
+    "kimura_replicator",
+    "geometric_brownian_motion",
+    "exponential_ornstein_uhlenbeck",
+    "integrated_ornstein_uhlenbeck",
+    "colored_geometric_brownian_motion",
+    "gillespie_replicator",
+    "white_replicator",
+    "colored_stochastic_replicator",
+    "colored_replicator",
+    "moran",
+    "competitive_lotka_volterra",
+    "__version__",
+]
 
 from .wiener import wiener
 from .ornstein_uhlenbeck import ornstein_uhlenbeck

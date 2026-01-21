@@ -1,4 +1,4 @@
-.PHONY: help venv lock sync sync-frozen examples test build clean distclean publish-test publish
+.PHONY: help venv lock sync sync-frozen examples test build clean distclean publish-test publish bump
 
 help:
 	@echo "Targets:"
@@ -58,3 +58,12 @@ clean:
 
 distclean: clean
 	rm -rf .venv
+
+
+bump:
+	@oldver=$$(awk -F'"' '/__version__/ {print $$2}' src/stopro/_version.py) && \
+	IFS='.' read -r major minor patch <<< "$$oldver" && \
+	newpatch=$$((patch + 1)) && \
+	newver="$$major.$$minor.$$newpatch" && \
+	sed -i "s/__version__ = \"$$oldver\"/__version__ = \"$$newver\"/" src/stopro/_version.py && \
+	echo "Version bumped: $$oldver -> $$newver"
