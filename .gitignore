@@ -38,6 +38,7 @@ __pycache__
 /htmlcov/
 
 /venv/
+.venv/
 
 config.ini
 
@@ -47,3 +48,4 @@ __pycache__/
 
 # Virtualenv
 venv/*
+.venv/

@@ -1,3 +1,22 @@
+Metadata-Version: 2.4
+Name: stopro
+Version: 0.2.0
+Summary: Stochastic processes in Python
+Author-email: Dirk Brockmann <dirk.brockmann@tu-dresden.de>
+Maintainer-email: Dirk Brockmann <dirk.brockmann@tu-dresden.de>
+License: MIT
+Project-URL: Repository, https://github.com/dirkbrockmann/stopro
+Keywords: stochastic-processes,sde,wiener,ornstein-uhlenbeck
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.22
+Requires-Dist: scipy>=1.9
+Dynamic: license-file
+
 # stopro — Elementary Stochastic Processes
 
 **stopro** is a small Python library for generating and simulating common

@@ -1,18 +1,23 @@
-# -*- coding: utf-8 -*-
-"""
-Initializes this package with metadata.
-"""
+from importlib.metadata import version
 
-from .metadata import (
-        __version__,
-        __author__,
-        __copyright__,
-        __credits__,
-        __license__,
-        __maintainer__,
-        __email__,
-        __status__,
-    )
+__version__ = version("stopro")
+
+__all__ = [
+    "wiener",
+    "ornstein_uhlenbeck",
+    "kimura_replicator",
+    "geometric_brownian_motion",
+    "exponential_ornstein_uhlenbeck",
+    "integrated_ornstein_uhlenbeck",
+    "colored_geometric_brownian_motion",
+    "gillespie_replicator",
+    "white_replicator",
+    "colored_stochastic_replicator",
+    "colored_replicator",
+    "moran",
+    "competitive_lotka_volterra",
+    "__version__",
+]
 
 from .wiener import wiener
 from .ornstein_uhlenbeck import ornstein_uhlenbeck
