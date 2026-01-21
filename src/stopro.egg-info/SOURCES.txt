@@ -2,9 +2,9 @@ LICENSE
 MANIFEST.in
 README.md
 pyproject.toml
-setup.py
 src/stopro/__init__.py
 src/stopro/_utils.py
+src/stopro/_version.py
 src/stopro/colored_geometric_brownian_motion.py
 src/stopro/colored_replicator.py
 src/stopro/competitive_lotka_volterra.py
@@ -13,7 +13,6 @@ src/stopro/geometric_brownian_motion.py
 src/stopro/gillespie_replicator.py
 src/stopro/integrated_ornstein_uhlenbeck.py
 src/stopro/kimura_replicator.py
-src/stopro/metadata.py
 src/stopro/moran.py
 src/stopro/ornstein_uhlenbeck.py
 src/stopro/white_replicator.py

@@ -14,39 +14,75 @@ Requires-Python: >=3.9
 Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: numpy>=1.22
-Requires-Dist: pandas>=2.3.3
 Requires-Dist: scipy>=1.9
-Provides-Extra: dev
-Requires-Dist: pytest>=7; extra == "dev"
-Provides-Extra: examples
-Requires-Dist: jupyter; extra == "examples"
-Requires-Dist: matplotlib; extra == "examples"
-Requires-Dist: palettable; extra == "examples"
-Provides-Extra: plot
-Requires-Dist: matplotlib>=3.9.4; extra == "plot"
 Dynamic: license-file
 
-# stopro - Elementary Stochastic Processes
+# stopro — Elementary Stochastic Processes
 
-A python package for generating common multivariate stochastic processes:
+**stopro** is a small Python library for generating and simulating common
+(multivariate) stochastic processes.
 
-1. Wiener process
-2. Ornstein-Uhlenbeck process
-3. Integrated Ornstein-Uhlenbeck process
-4. Exponential Ornstein-Uhlenbeck process
-5. Geometric Brownian Motion
-6. Colored Geometric Brownian Motion
-7. Gillespie Replicator
-8. Kimura Replicator
-9. White Replicator
-10. Colored Replicator
-11. Multispecies Moran Process (discrete particle kinetics & diffusion approximation)
-12. Competitive Lotka Volterra Process (discrete particle kinetics & diffusion approximation)
+Currently included processes:
+
+1. Wiener process  
+2. Ornstein–Uhlenbeck process  
+3. Integrated Ornstein–Uhlenbeck process  
+4. Exponential Ornstein–Uhlenbeck process  
+5. Geometric Brownian Motion  
+6. Colored Geometric Brownian Motion  
+7. Gillespie Replicator  
+8. Kimura Replicator  
+9. White Replicator  
+10. Colored Replicator  
+11. Multispecies Moran process  
+    (discrete particle kinetics & diffusion approximation)  
+12. Competitive Lotka–Volterra process  
+    (discrete particle kinetics & diffusion approximation)
+
+Examples and documentation are provided as Jupyter notebooks.
+
+---
+
+## Quick start (recommended)
+
+This project uses **uv**, a fast Python package manager and virtual environment
+tool. You need to install uv on your system first. When that's done:
+
+```bash
+git clone https://github.com/dirkbrockmann/stopro.git
+cd stopro
+make notebook
+```
+
+---
+
+## Using stopro in your own code
+
+```python
+import stopro
+```
+
+---
 
 
-You can find documentation and examples in the Jupyter notebooks in the ``examples`` directory.
+## Installation via pip
 
-## Download & Install
+Download and install the latest source:
 
-    git clone git@github.com:dirkbrockmann/stopro.git
-    pip install ./stopro
+```bash
+pip install git+https://github.com/dirkbrockmann/stopro.git
+```
+
+Clone and work with code locally:
+
+```bash
+git clone https://github.com/dirkbrockmann/stopro.git
+cd stopro
+pip install -e .
+````
+
+---
+
+## License
+
+MIT

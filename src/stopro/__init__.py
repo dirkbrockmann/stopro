@@ -1,18 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Initializes this package with metadata.
-"""
+from ._version import __version__
 
-from .metadata import (
-        __version__,
-        __author__,
-        __copyright__,
-        __credits__,
-        __license__,
-        __maintainer__,
-        __email__,
-        __status__,
-    )
+__all__ = ["__version__"]
 
 from .wiener import wiener
 from .ornstein_uhlenbeck import ornstein_uhlenbeck

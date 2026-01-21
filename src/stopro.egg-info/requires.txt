@@ -1,14 +1,2 @@
 numpy>=1.22
-pandas>=2.3.3
 scipy>=1.9
-
-[dev]
-pytest>=7
-
-[examples]
-jupyter
-matplotlib
-palettable
-
-[plot]
-matplotlib>=3.9.4
