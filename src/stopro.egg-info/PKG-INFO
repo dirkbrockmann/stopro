@@ -14,6 +14,7 @@ Requires-Python: >=3.9
 Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: numpy>=1.22
+Requires-Dist: pandas>=2.3.3
 Requires-Dist: scipy>=1.9
 Provides-Extra: dev
 Requires-Dist: pytest>=7; extra == "dev"
@@ -21,6 +22,8 @@ Provides-Extra: examples
 Requires-Dist: jupyter; extra == "examples"
 Requires-Dist: matplotlib; extra == "examples"
 Requires-Dist: palettable; extra == "examples"
+Provides-Extra: plot
+Requires-Dist: matplotlib>=3.9.4; extra == "plot"
 Dynamic: license-file
 
 # stopro - Elementary Stochastic Processes
