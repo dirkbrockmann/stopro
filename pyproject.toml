@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=69","setuptools-scm>=8"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
 
 [project]
 name = "stopro"
-dynamic = ["version"]
+version = "0.3.3"
 description = "Stochastic processes in Python"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -26,33 +26,12 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/dirkbrockmann/stopro"
-# Documentation = "https://..."
 
-[tool.setuptools]
-package-dir = { "" = "src" }
+[project.optional-dependencies]
+examples = ["jupyter", "matplotlib", "palettable"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[dependency-groups]
+dev = ["pytest>=7"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
-[tool.setuptools_scm]
-version_scheme = "post-release"
-local_scheme = "no-local-version"
-
-[dependency-groups]
-dev = [
-  "pytest>=7",
-  "build>=1.4.0",
-  "twine>=6.2.0",
-  "bumpver>=2025.1131",
-]
-
-examples = [
-  "jupyter",
-  "matplotlib",
-  "palettable",
-]
-
-

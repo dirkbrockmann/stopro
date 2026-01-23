@@ -1,39 +1,43 @@
-.PHONY: help venv lock sync sync-frozen examples test build clean distclean publish-test publish bump
+.PHONY: help venv lock sync sync-frozen examples notebook test build publish-test publish clean distclean \
+        bump bump-patch bump-minor bump-major release-patch release-minor release-major
 
 help:
 	@echo "Targets:"
-	@echo "  make venv         Create .venv"
-	@echo "  make lock         Resolve deps -> uv.lock"
-	@echo "  make sync         Sync base env from uv.lock (includes dev group)"
-	@echo "  make sync-frozen  Sync strictly from uv.lock (no resolving; good for CI)"
-	@echo "  make examples     Sync env incl. examples group"
-	@echo "  make test         Run pytest"
-	@echo "  make build        Build wheel+sdist into dist/"
-	@echo "  make publish-test Upload dist/* to TestPyPI"
-	@echo "  make publish      Upload dist/* to PyPI"
-	@echo "  make clean        Remove build artifacts"
-	@echo "  make distclean    Remove build artifacts + .venv"
+	@echo "  make venv           Create .venv"
+	@echo "  make lock           Resolve deps -> uv.lock"
+	@echo "  make sync           Sync env from uv.lock"
+	@echo "  make sync-frozen    Sync strictly from uv.lock (no resolving; good for CI)"
+	@echo "  make examples       Install optional deps: stopro[examples]"
+	@echo "  make notebook       Start Jupyter Lab in examples/"
+	@echo "  make test           Run pytest"
+	@echo "  make bump-patch     Bump version (patch) in pyproject.toml"
+	@echo "  make bump-minor     Bump version (minor) in pyproject.toml"
+	@echo "  make bump-major     Bump version (major) in pyproject.toml"
+	@echo "  make build          Build wheel+sdist into dist/"
+	@echo "  make publish-test   Publish to TestPyPI"
+	@echo "  make publish        Publish to PyPI"
+	@echo "  make release-patch  Test, bump patch, tag, build, publish"
+	@echo "  make release-minor  Test, bump minor, tag, build, publish"
+	@echo "  make release-major  Test, bump major, tag, build, publish"
+	@echo "  make clean          Remove build artifacts"
+	@echo "  make distclean      Remove build artifacts + .venv"
 
-# Create the venv directory (idempotent)
 venv: .venv
-
 .venv:
 	uv venv
 
 lock:
 	uv lock
 
-# Base sync (dev group included by default)
 sync: .venv
 	uv sync
 
-# Strict sync (fails if lockfile is out of date)
 sync-frozen: .venv
 	uv sync --frozen
 
-# Install the examples group in addition to base/dev
-examples: .venv
-	uv sync --group examples
+# Install extras for running notebooks/examples (published extras, not a local dependency-group)
+examples: sync
+	uv pip install -e ".[examples]"
 
 notebook: examples
 	uv run jupyter lab examples
@@ -41,29 +45,47 @@ notebook: examples
 test: sync
 	uv run pytest -q
 
-build: clean sync
-	uv run python -m build
-
-publish-test: build
-	uv run python -m twine upload --repository testpypi dist/*
-
-publish: build
-	uv run python -m twine upload dist/*
-
 clean:
-	rm -rf build dist
-	rm -rf *.egg-info src/*.egg-info
-	@# If you ever see nested egg-info, this catches it on mac/linux:
-	find src -name "*.egg-info" -maxdepth 5 -prune -exec rm -rf {} +
+	rm -rf dist build
 
 distclean: clean
 	rm -rf .venv
 
+# Version bumping (npm-like)
+bump: bump-patch
 
-bump:
-	@oldver=$$(awk -F'"' '/__version__/ {print $$2}' src/stopro/_version.py) && \
-	IFS='.' read -r major minor patch <<< "$$oldver" && \
-	newpatch=$$((patch + 1)) && \
-	newver="$$major.$$minor.$$newpatch" && \
-	sed -i "s/__version__ = \"$$oldver\"/__version__ = \"$$newver\"/" src/stopro/_version.py && \
-	echo "Version bumped: $$oldver -> $$newver"
+bump-patch:
+	uv version --bump patch
+
+bump-minor:
+	uv version --bump minor
+
+bump-major:
+	uv version --bump major
+
+build: clean sync
+	uv build
+
+publish-test: build
+	uv publish --repository testpypi
+
+publish: build
+	uv publish
+
+release-patch: test bump-patch
+	git commit -am "Release $$(uv version)"
+	git tag v$$(uv version)
+	uv build
+	uv publish
+
+release-minor: test bump-minor
+	git commit -am "Release $$(uv version)"
+	git tag v$$(uv version)
+	uv build
+	uv publish
+
+release-major: test bump-major
+	git commit -am "Release $$(uv version)"
+	git tag v$$(uv version)
+	uv build
+	uv publish
