@@ -66,9 +66,10 @@ def wiener(T,
     savedsteps = len(t) - 1
 
     X = np.zeros((samples, N, savedsteps+1), dtype=float)
-    print("eimer")
-    _ = S @ np.random.randn(M, min(100, steps + 1))
-
+    
+    print("M:", M)
+    print("N:", N)
+    print("steps:", steps)
     for i in range(samples):
         dw = S @ np.random.randn(M, steps + 1)
         dw[:, 0] = 0.0
