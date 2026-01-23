@@ -59,7 +59,7 @@ def wiener(T,
         raise ValueError("samples must be a positive integer.")
 
     S, covariance, N, M = _mixing(N=N, covariance=covariance, mixing_matrix=mixing_matrix)
-
+    
    # Single subsampling index used everywhere
     idx = np.arange(0, steps + 1, gap)
     t = t_full[idx]
@@ -68,11 +68,16 @@ def wiener(T,
     X = np.zeros((samples, N, savedsteps+1), dtype=float)
 
     for i in range(samples):
-        dw = S @ np.random.randn(M, steps + 1)
+        if np.allclose(S, np.eye(N)):
+            dw = np.random.randn(M, steps + 1)
+        else:
+            dw = S @ np.random.randn(M, steps + 1)
         dw[:, 0] = 0.0
         W_full = np.sqrt(dt) * np.cumsum(dw, axis=1)   # (N, steps+1)
         X[i] = W_full[:, idx]
     
+
+
     return {
         'X': X,
         't': t,

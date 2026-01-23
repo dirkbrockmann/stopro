@@ -46,21 +46,41 @@ import stopro
 ---
 
 
+
 ## Installation via pip
 
-Download and install the latest source:
+You can now install stopro directly from PyPI:
+
+```bash
+pip install stopro
+```
+
+To install the latest development version from source:
 
 ```bash
 pip install git+https://github.com/dirkbrockmann/stopro.git
 ```
 
-Clone and work with code locally:
+
+Or clone and work with the code locally:
 
 ```bash
 git clone https://github.com/dirkbrockmann/stopro.git
 cd stopro
 pip install -e .
-````
+```
+
+---
+
+## Running the examples
+
+To run the Jupyter notebook examples, install stopro with the extra dependencies:
+
+```bash
+pip install "stopro[examples]"
+```
+
+This will install all required packages for the example notebooks.
 
 ---
 
