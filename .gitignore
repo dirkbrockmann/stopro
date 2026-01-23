@@ -50,3 +50,10 @@ __pycache__/
 venv/*
 .venv/
 .env 
+
+# Jupyter Notebook
+.ipynb_checkpoints
+.jupyter/
+.jupyter_data/
+.jupyter_runtime/
+.jupyterlab/

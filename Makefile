@@ -98,7 +98,11 @@ examples: sync
 	uv pip install -e ".[examples]"
 
 notebook: examples
-	uv run jupyter lab examples --log-level=ERROR
+	@mkdir -p .jupyter .jupyter_data .jupyter_runtime
+	JUPYTER_CONFIG_DIR="$(PWD)/.jupyter" \
+	JUPYTER_DATA_DIR="$(PWD)/.jupyter_data" \
+	JUPYTER_RUNTIME_DIR="$(PWD)/.jupyter_runtime" \
+	uv run jupyter lab examples
 
 # --------------------------------------------------------------------
 # Tests
