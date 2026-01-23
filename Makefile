@@ -50,23 +50,10 @@ help:
 # --------------------------------------------------------------------
 # Environment / deps
 # --------------------------------------------------------------------
-# Optional: override the Python interpreter used to create the venv.
-# Useful e.g. on macOS if you want a conda Python (OpenBLAS) instead of the
-# default PyPI wheels (often Apple Accelerate).
-#
-# Usage:
-#   make venv
-#   make venv UV_PYTHON=$$(which python)
-UV_PYTHON ?=
-
 venv: .venv
 
 .venv:
-ifneq ($(strip $(UV_PYTHON)),)
-	uv venv --python "$(UV_PYTHON)"
-else
 	uv venv
-endif
 
 lock:
 	uv lock
