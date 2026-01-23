@@ -73,19 +73,22 @@ publish: build
 	uv publish
 
 release-patch: test bump-patch
-	git commit -am "Release $$(uv version)"
-	git tag v$$(uv version)
-	uv build
+	@ver=$$(uv version) && \
+	git commit -am "Release $$ver" && \
+	git tag "v$$ver" && \
+	uv build && \
 	uv publish
 
 release-minor: test bump-minor
-	git commit -am "Release $$(uv version)"
-	git tag v$$(uv version)
-	uv build
+	@ver=$$(uv version) && \
+	git commit -am "Release $$ver" && \
+	git tag "v$$ver" && \
+	uv build && \
 	uv publish
 
 release-major: test bump-major
-	git commit -am "Release $$(uv version)"
-	git tag v$$(uv version)
-	uv build
+	@ver=$$(uv version) && \
+	git commit -am "Release $$ver" && \
+	git tag "v$$ver" && \
+	uv build && \
 	uv publish
