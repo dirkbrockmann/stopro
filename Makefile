@@ -1,37 +1,55 @@
 .PHONY: help venv lock sync sync-frozen examples notebook test build clean distclean \
         bump bump-patch bump-minor bump-major \
-        publish-test publish \
+        publish \
         release-patch release-minor release-major \
-        release-patch-test release-minor-test release-major-test \
-        show-version show-version-full
+        show-version show-version-full \
+        git-clean require-token
 
-# uv prints: "<name> <version>" (e.g. "stopro 0.3.5").
-# This extracts just the numeric version for tags etc.
-UV_VERSION = $(shell uv version | awk '{print $$NF}')
-UV_VERSION_FULL = $(shell uv version)
+# --------------------------------------------------------------------
+# Load local environment variables if present (do NOT commit .env)
+# --------------------------------------------------------------------
+ifneq (,$(wildcard .env))
+  include .env
+  export
+endif
 
+# --------------------------------------------------------------------
+# Version helpers
+# uv prints: "<name> <version>" (e.g. "stopro 0.3.5")
+# Do NOT store versions in Make variables (they would go stale after bump)
+# --------------------------------------------------------------------
+UV_VERSION_CMD = uv version
+UV_VERSION_NUM_CMD = uv version | awk '{print $$NF}'
+
+# Expected env vars (loaded from .env):
+# - UV_PUBLISH_TOKEN        (PyPI)
+
+# --------------------------------------------------------------------
+# Help
+# --------------------------------------------------------------------
 help:
 	@echo "Targets:"
 	@echo "  make venv              Create .venv"
 	@echo "  make lock              Resolve deps -> uv.lock"
 	@echo "  make sync              Sync env from uv.lock"
-	@echo "  make sync-frozen       Sync strictly from uv.lock (no resolving; good for CI)"
+	@echo "  make sync-frozen       Sync strictly from uv.lock (CI-style)"
 	@echo "  make examples          Install optional deps: stopro[examples]"
 	@echo "  make notebook          Start Jupyter Lab in examples/"
 	@echo "  make test              Run pytest"
-	@echo "  make bump-patch        Bump version (patch) in pyproject.toml"
-	@echo "  make bump-minor        Bump version (minor) in pyproject.toml"
-	@echo "  make bump-major        Bump version (major) in pyproject.toml"
+	@echo "  make bump-patch        Bump version (patch)"
+	@echo "  make bump-minor        Bump version (minor)"
+	@echo "  make bump-major        Bump version (major)"
 	@echo "  make build             Build wheel+sdist into dist/"
-	@echo "  make publish-test      Publish to TestPyPI"
-	@echo "  make publish           Publish to PyPI"
-	@echo "  make release-patch     Test, bump patch, commit, tag, build, publish"
-	@echo "  make release-minor     Test, bump minor, commit, tag, build, publish"
-	@echo "  make release-major     Test, bump major, commit, tag, build, publish"
+	@echo "  make publish           Publish to PyPI (requires token)"
+	@echo "  make release-patch     Test, bump patch, commit, tag"
+	@echo "  make release-minor     Test, bump minor, commit, tag"
+	@echo "  make release-major     Test, bump major, commit, tag"
 	@echo "  make clean             Remove build artifacts"
 	@echo "  make distclean         Remove build artifacts + .venv"
 
-# Create the venv directory (idempotent)
+# --------------------------------------------------------------------
+# Environment / deps
+# --------------------------------------------------------------------
 venv: .venv
 .venv:
 	uv venv
@@ -45,17 +63,35 @@ sync: .venv
 sync-frozen: .venv
 	uv sync --frozen
 
-# Install optional deps for notebooks/examples (published extras, not a dependency-group)
+# --------------------------------------------------------------------
+# Safety checks
+# --------------------------------------------------------------------
+git-clean:
+	@git diff --quiet && git diff --cached --quiet || \
+	 (echo "ERROR: git working tree is not clean"; exit 1)
+
+require-token:
+	@test -n "$$UV_PUBLISH_TOKEN" || \
+	 (echo "ERROR: UV_PUBLISH_TOKEN missing (check .env)"; exit 1)
+
+# --------------------------------------------------------------------
+# Examples / notebooks
+# --------------------------------------------------------------------
 examples: sync
 	uv pip install -e ".[examples]"
 
 notebook: examples
 	uv run jupyter lab examples
 
+# --------------------------------------------------------------------
+# Tests
+# --------------------------------------------------------------------
 test: sync
 	uv run pytest -q
 
-# Version bumping (npm-like)
+# --------------------------------------------------------------------
+# Version bumping (npm-style)
+# --------------------------------------------------------------------
 bump: bump-patch
 
 bump-patch:
@@ -68,11 +104,14 @@ bump-major:
 	uv version --bump major
 
 show-version:
-	@echo $(UV_VERSION)
+	@$(UV_VERSION_NUM_CMD)
 
 show-version-full:
-	@echo $(UV_VERSION_FULL)
+	@$(UV_VERSION_CMD)
 
+# --------------------------------------------------------------------
+# Build / clean
+# --------------------------------------------------------------------
 clean:
 	rm -rf dist build
 
@@ -82,48 +121,34 @@ distclean: clean
 build: clean sync
 	uv build
 
-publish-test: build
-	uv publish --repository testpypi
+# --------------------------------------------------------------------
+# Publish (LOCAL ONLY, token via .env)
+# --------------------------------------------------------------------
+publish: build require-token
+	uv publish --token "$$UV_PUBLISH_TOKEN"
 
-publish: build
-	uv publish
+# --------------------------------------------------------------------
+# Release targets
+# test -> bump -> commit -> tag
+# Publishing is an explicit second step: `make publish`
+# --------------------------------------------------------------------
+release-patch: git-clean test bump-patch
+	@ver=$$($(UV_VERSION_NUM_CMD)) && full=$$($(UV_VERSION_CMD)) && \
+	git commit -am "Release $$full" && \
+	git rev-parse "v$$ver" >/dev/null 2>&1 && \
+	 (echo "ERROR: tag v$$ver already exists"; exit 1) || true && \
+	git tag "v$$ver"
 
-# Release targets: test -> bump -> commit -> tag -> build -> publish
-# Commit message includes the full uv version output (e.g. "stopro 0.3.5") for readability.
-# Tag uses numeric version only (e.g. "v0.3.5") to avoid spaces/invalid tag names.
-release-patch: test bump-patch
-	git commit -am "Release $(UV_VERSION_FULL)"
-	git tag "v$(UV_VERSION)"
-	uv build
-	uv publish
+release-minor: git-clean test bump-minor
+	@ver=$$($(UV_VERSION_NUM_CMD)) && full=$$($(UV_VERSION_CMD)) && \
+	git commit -am "Release $$full" && \
+	git rev-parse "v$$ver" >/dev/null 2>&1 && \
+	 (echo "ERROR: tag v$$ver already exists"; exit 1) || true && \
+	git tag "v$$ver"
 
-release-minor: test bump-minor
-	git commit -am "Release $(UV_VERSION_FULL)"
-	git tag "v$(UV_VERSION)"
-	uv build
-	uv publish
-
-release-major: test bump-major
-	git commit -am "Release $(UV_VERSION_FULL)"
-	git tag "v$(UV_VERSION)"
-	uv build
-	uv publish
-
-# Same, but publish to TestPyPI
-release-patch-test: test bump-patch
-	git commit -am "Release $(UV_VERSION_FULL)"
-	git tag "v$(UV_VERSION)"
-	uv build
-	uv publish --repository testpypi
-
-release-minor-test: test bump-minor
-	git commit -am "Release $(UV_VERSION_FULL)"
-	git tag "v$(UV_VERSION)"
-	uv build
-	uv publish --repository testpypi
-
-release-major-test: test bump-major
-	git commit -am "Release $(UV_VERSION_FULL)"
-	git tag "v$(UV_VERSION)"
-	uv build
-	uv publish --repository testpypi
+release-major: git-clean test bump-major
+	@ver=$$($(UV_VERSION_NUM_CMD)) && full=$$($(UV_VERSION_CMD)) && \
+	git commit -am "Release $$full" && \
+	git rev-parse "v$$ver" >/dev/null 2>&1 && \
+	 (echo "ERROR: tag v$$ver already exists"; exit 1) || true && \
+	git tag "v$$ver"
