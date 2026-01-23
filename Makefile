@@ -98,7 +98,7 @@ examples: sync
 	uv pip install -e ".[examples]"
 
 notebook: examples
-	uv run jupyter lab examples
+	uv run jupyter lab examples --log-level=ERROR
 
 # --------------------------------------------------------------------
 # Tests
