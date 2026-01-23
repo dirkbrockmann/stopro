@@ -66,12 +66,11 @@ def wiener(T,
     savedsteps = len(t) - 1
 
     X = np.zeros((samples, N, savedsteps+1), dtype=float)
+    print("eimer")
+    _ = S @ np.random.randn(M, min(100, steps + 1))
 
     for i in range(samples):
-        if np.allclose(S, np.eye(N)):
-            dw = np.random.randn(M, steps + 1)
-        else:
-            dw = S @ np.random.randn(M, steps + 1)
+        dw = S @ np.random.randn(M, steps + 1)
         dw[:, 0] = 0.0
         W_full = np.sqrt(dt) * np.cumsum(dw, axis=1)   # (N, steps+1)
         X[i] = W_full[:, idx]
