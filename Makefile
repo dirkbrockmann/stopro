@@ -25,6 +25,12 @@ UV_VERSION_NUM_CMD = uv version | awk '{print $$NF}'
 # - UV_PUBLISH_TOKEN        (PyPI)
 
 # --------------------------------------------------------------------
+# Python interpreter for venv creation (set to Homebrew Python for portability)
+# Change this path if you want to use a different Python version
+PYTHON_FOR_VENV ?= /opt/homebrew/bin/python3
+
+
+# --------------------------------------------------------------------
 # Help
 # --------------------------------------------------------------------
 help:
@@ -53,7 +59,7 @@ help:
 venv: .venv
 
 .venv:
-	uv venv
+	uv venv --python $(PYTHON_FOR_VENV)
 
 lock:
 	uv lock
