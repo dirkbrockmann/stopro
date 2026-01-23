@@ -87,13 +87,8 @@ def competitive_lotka_volterra(T,x0,alpha,beta,system_size,
     """
     Generates realizations of the multispecies, stochasic competitve Lokta-Volterra Model 
     of a population of individuals of M different species 
-    that replicate and compete to the following reaction scheme:
-    .. math::
-        X_i \rightarrow 2X_i \quad \text{at rate} \quad \alpha_i 
-
-    .. math::
-        X_i + X_j \rightarrow 2X_j \quad \text{at rate} \quad \beta_{ij}/Omega 
-
+    that replicate and compete
+    
     The parameter Omega is the system size
     Parameters
     ----------

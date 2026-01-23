@@ -84,13 +84,7 @@ def moran(T,n0,alpha,
           A = None, 
           timescale = 1):
     """
-    Generates realizations of the multispecies, stochasic Moran process of 
-    a population of individuals of M different species
-    that interact according to the following reaction scheme:
-    .. math::
-
-        X_i + X_j \rightarrow 2X_i \quad \text{at rate} \quad \alpha_i 
-
+    
     Parameters
     ----------
     T : float
