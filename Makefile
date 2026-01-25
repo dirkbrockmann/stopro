@@ -1,4 +1,4 @@
-.PHONY: help venv lock sync sync-frozen examples notebook test build clean distclean \
+.PHONY: help venv lock sync sync-frozen sync-dev examples notebook test build clean distclean \
         bump bump-patch bump-minor bump-major \
         publish \
         release-patch release-minor release-major \
@@ -25,9 +25,11 @@ UV_VERSION_NUM_CMD = uv version | awk '{print $$NF}'
 # - UV_PUBLISH_TOKEN        (PyPI)
 
 # --------------------------------------------------------------------
-# Python interpreter for venv creation (set to Homebrew Python for portability)
-# Change this path if you want to use a different Python version
-PYTHON_FOR_VENV ?= /opt/homebrew/bin/python3
+# Python interpreter for venv creation
+# Default is portable; override as needed, e.g.:
+#   make PYTHON=/opt/homebrew/bin/python3 venv
+# --------------------------------------------------------------------
+PYTHON ?= python3
 
 # --------------------------------------------------------------------
 # Help
@@ -35,10 +37,11 @@ PYTHON_FOR_VENV ?= /opt/homebrew/bin/python3
 help:
 	@echo "Targets:"
 	@echo "  make venv              Create .venv"
-	@echo "  make lock              Resolve deps -> uv.lock"
-	@echo "  make sync              Sync env from uv.lock"
-	@echo "  make sync-frozen       Sync strictly from uv.lock (CI-style)"
-	@echo "  make examples          Install optional deps: stopro[examples]"
+	@echo "  make lock              Resolve deps -> uv.lock (maintainers)"
+	@echo "  make sync              Sync env strictly from uv.lock (recommended default)"
+	@echo "  make sync-dev          Sync env allowing lock refresh (maintainers)"
+	@echo "  make sync-frozen       Alias for sync"
+	@echo "  make examples          Sync + install optional deps: stopro[examples]"
 	@echo "  make notebook          Start Jupyter Lab in examples/"
 	@echo "  make test              Run pytest"
 	@echo "  make bump-patch        Bump version (patch)"
@@ -59,16 +62,22 @@ help:
 venv: .venv
 
 .venv:
-	uv venv --python $(PYTHON_FOR_VENV)
+	uv venv --python $(PYTHON)
 
+# Maintainers only: refresh resolution into uv.lock
 lock:
 	uv lock
 
+# Default path for collaborators / HPC: strictly use uv.lock as-is
 sync: .venv
-	uv sync
-
-sync-frozen: .venv
 	uv sync --frozen
+
+# Alias for clarity / backwards compatibility
+sync-frozen: sync
+
+# Maintainers only: allow uv to re-lock before syncing if needed
+sync-dev: .venv
+	uv sync
 
 # --------------------------------------------------------------------
 # Safety checks
@@ -94,8 +103,8 @@ push-release: require-remote
 # --------------------------------------------------------------------
 # Examples / notebooks
 # --------------------------------------------------------------------
-examples: sync
-	uv pip install -e ".[examples]"
+examples: .venv
+	uv sync --frozen --extra examples
 
 notebook: examples
 	@mkdir -p .jupyter .jupyter_data .jupyter_runtime

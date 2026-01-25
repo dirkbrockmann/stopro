@@ -7,14 +7,20 @@ name = "stopro"
 version = "0.4.8"
 description = "Stochastic processes in Python"
 readme = "README.md"
-requires-python = ">=3.9"
+
+# Keep a sane upper bound to avoid future major/minor surprises.
+# Adjust the lower bound if you truly need 3.9 support.
+requires-python = ">=3.9,<3.13"
+
 authors = [{ name = "Dirk Brockmann", email = "dirk.brockmann@tu-dresden.de" }]
 maintainers = [{ name = "Dirk Brockmann", email = "dirk.brockmann@tu-dresden.de" }]
 license = { text = "MIT" }
 
+# Leave intent (ranges) here; exact versions are pinned in uv.lock.
+# Upper bounds guard against future major releases with breaking changes.
 dependencies = [
-  "numpy>=1.22",
-  "scipy>=1.9",
+  "numpy>=1.22,<3",
+  "scipy>=1.9,<2",
 ]
 
 keywords = ["stochastic-processes", "sde", "wiener", "ornstein-uhlenbeck"]
@@ -28,10 +34,13 @@ classifiers = [
 Repository = "https://github.com/dirkbrockmann/stopro"
 
 [project.optional-dependencies]
-examples = ["jupyter", "matplotlib", "palettable"]
+# Use jupyterlab explicitly since you run `jupyter lab` in the Makefile.
+# Add a mild matplotlib floor to reduce surprising behavior changes.
+examples = ["jupyterlab", "matplotlib>=3.7", "palettable"]
 
 [dependency-groups]
-dev = ["pytest>=7"]
+# Optional upper bound for stability; bump as needed.
+dev = ["pytest>=7,<9"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
