@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import trange
 
 from benchmarks.common import add_common_args
-from stopro import ornstein_uhlenbeck
+from stopro import white_replicator
 
 
 def make_cov(N: int, seed: int) -> np.ndarray:
@@ -25,13 +25,13 @@ def main(argv=None) -> int:
     cov = make_cov(args.N, args.seed)
 
     # warmup
-    for _ in trange(args.warmup, desc="ornstein_uhlenbeck warmup", unit="run", leave=False):
-        ornstein_uhlenbeck(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
+    for _ in trange(args.warmup, desc="white_replicator warmup", unit="run", leave=False):
+        white_replicator(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
 
     times: list[float] = []
-    for _ in trange(args.repeats, desc="ornstein_uhlenbeck", unit="run"):
+    for _ in trange(args.repeats, desc="white_replicator", unit="run"):
         t0 = time.perf_counter()
-        ornstein_uhlenbeck(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
+        white_replicator(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
         times.append(time.perf_counter() - t0)
 
     t = np.array(times, dtype=float)

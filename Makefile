@@ -4,7 +4,7 @@
         release-patch release-minor release-major \
         show-version show-version-full \
         git-clean require-token require-remote push-release \
-        bench bench-list bench-%
+        bench bench-list bench-% sync-bench
 
 # --------------------------------------------------------------------
 # Load local environment variables if present (do NOT commit .env)
@@ -38,14 +38,14 @@ PYTHON ?= python3
 help:
 	@echo "Targets:"
 	@echo "  make venv              Create .venv"
-	@echo "  make lock              Resolve deps -> uv.lock (maintainers)"
-	@echo "  make sync              Sync env strictly from uv.lock (recommended default)"
+	@echo "  make lock              Resolve deps -> uv.lock (maintainers; includes extras)"
+	@echo "  make sync              Sync base env strictly from uv.lock (recommended default)"
 	@echo "  make sync-dev          Sync env allowing lock refresh (maintainers)"
 	@echo "  make sync-frozen       Alias for sync"
-	@echo "  make examples          Sync + install optional deps: stopro[examples]"
+	@echo "  make examples          Sync frozen + install stopro[examples]"
 	@echo "  make notebook          Start Jupyter Lab in examples/"
 	@echo "  make test              Run pytest"
-	@echo "  make bench             Run all benchmarks"
+	@echo "  make bench             Run all benchmarks (requires stopro[bench])"
 	@echo "  make bench-list        List available benchmarks"
 	@echo "  make bench-wiener      Run a single benchmark (example)"
 	@echo "  make bump-patch        Bump version (patch)"
@@ -68,11 +68,11 @@ venv: .venv
 .venv:
 	uv venv --python $(PYTHON)
 
-# Maintainers only: refresh resolution into uv.lock
+# Maintainers: refresh resolution into uv.lock (include supported extras)
 lock:
 	uv lock
 
-# Default path for collaborators / HPC: strictly use uv.lock as-is
+# Default path for collaborators / HPC: strictly use uv.lock as-is (base only)
 sync: .venv
 	uv sync --frozen
 
@@ -82,6 +82,10 @@ sync-frozen: sync
 # Maintainers only: allow uv to re-lock before syncing if needed
 sync-dev: .venv
 	uv sync
+
+# Bench env: base + bench extra, strictly from uv.lock
+sync-bench: .venv
+	uv sync --frozen --extra bench
 
 # --------------------------------------------------------------------
 # Safety checks
@@ -126,13 +130,13 @@ test: sync
 # --------------------------------------------------------------------
 # Benchmarks
 # --------------------------------------------------------------------
-bench: sync
+bench: sync-bench
 	uv run python -m benchmarks.run all
 
-bench-list: sync
+bench-list: sync-bench
 	uv run python -m benchmarks.run --list
 
-bench-%: sync
+bench-%: sync-bench
 	uv run python -m benchmarks.run $*
 
 # --------------------------------------------------------------------

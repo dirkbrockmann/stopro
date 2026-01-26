@@ -9,7 +9,7 @@ import benchmarks
 def list_benches() -> list[str]:
     names = []
     for m in pkgutil.iter_modules(benchmarks.__path__):
-        if m.name in {"run"}:
+        if m.name in {"run", "__init__", "common"}:
             continue
         names.append(m.name)
     return sorted(names)
