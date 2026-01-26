@@ -10,7 +10,7 @@ readme = "README.md"
 
 # Keep a sane upper bound to avoid future major/minor surprises.
 # Adjust the lower bound if you truly need 3.9 support.
-requires-python = ">=3.9,<3.15"
+requires-python = ">=3.9,<=3.13"
 
 authors = [{ name = "Dirk Brockmann", email = "dirk.brockmann@tu-dresden.de" }]
 maintainers = [{ name = "Dirk Brockmann", email = "dirk.brockmann@tu-dresden.de" }]
@@ -37,6 +37,7 @@ Repository = "https://github.com/dirkbrockmann/stopro"
 # Use jupyterlab explicitly since you run `jupyter lab` in the Makefile.
 # Add a mild matplotlib floor to reduce surprising behavior changes.
 examples = ["jupyterlab", "matplotlib>=3.7", "palettable"]
+bench = ["tqdm>=4.66"]
 
 [dependency-groups]
 # Optional upper bound for stability; bump as needed.
