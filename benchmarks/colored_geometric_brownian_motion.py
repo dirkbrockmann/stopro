@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import trange
 
 from benchmarks.common import add_common_args
-from stopro import gillespie_replicator
+from stopro import colored_geometric_brownian_motion
 
 
 def make_cov(N: int, seed: int) -> np.ndarray:
@@ -25,13 +25,13 @@ def main(argv=None) -> int:
     cov = make_cov(args.N, args.seed)
 
     # warmup
-    for _ in trange(args.warmup, desc="gillespie_replicator warmup", unit="run", leave=False):
-        gillespie_replicator(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
+    for _ in trange(args.warmup, desc="colored_geometric_brownian_motion warmup", unit="run", leave=False):
+        colored_geometric_brownian_motion(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
 
     times: list[float] = []
-    for _ in trange(args.repeats, desc="gillespie_replicator", unit="run"):
+    for _ in trange(args.repeats, desc="colored_geometric_brownian_motion", unit="run"):
         t0 = time.perf_counter()
-        gillespie_replicator(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
+        colored_geometric_brownian_motion(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
         times.append(time.perf_counter() - t0)
 
     t = np.array(times, dtype=float)
