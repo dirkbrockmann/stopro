@@ -82,6 +82,16 @@ pip install "stopro[examples]"
 
 This will install all required packages for the example notebooks.
 
+## Running the benchmarks
+
+To run the Jupyter notebook examples, install stopro with the extra dependencies:
+
+```bash
+pip install "stopro[bench]"
+```
+
+This will install all required packages for the example notebooks.
+
 ---
 
 ## License
