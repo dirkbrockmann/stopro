@@ -3,7 +3,8 @@
         publish \
         release-patch release-minor release-major \
         show-version show-version-full \
-        git-clean require-token require-remote push-release
+        git-clean require-token require-remote push-release \
+        bench bench-list bench-%
 
 # --------------------------------------------------------------------
 # Load local environment variables if present (do NOT commit .env)
@@ -44,6 +45,9 @@ help:
 	@echo "  make examples          Sync + install optional deps: stopro[examples]"
 	@echo "  make notebook          Start Jupyter Lab in examples/"
 	@echo "  make test              Run pytest"
+	@echo "  make bench             Run all benchmarks"
+	@echo "  make bench-list        List available benchmarks"
+	@echo "  make bench-wiener      Run a single benchmark (example)"
 	@echo "  make bump-patch        Bump version (patch)"
 	@echo "  make bump-minor        Bump version (minor)"
 	@echo "  make bump-major        Bump version (major)"
@@ -118,6 +122,18 @@ notebook: examples
 # --------------------------------------------------------------------
 test: sync
 	uv run pytest -q
+
+# --------------------------------------------------------------------
+# Benchmarks
+# --------------------------------------------------------------------
+bench: sync
+	uv run python -m benchmarks.run all
+
+bench-list: sync
+	uv run python -m benchmarks.run --list
+
+bench-%: sync
+	uv run python -m benchmarks.run $*
 
 # --------------------------------------------------------------------
 # Version bumping (npm-style)

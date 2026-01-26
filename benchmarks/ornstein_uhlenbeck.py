@@ -4,7 +4,7 @@ import argparse
 import time
 import numpy as np
 
-from stopro import wiener
+from stopro import ornstein_uhlenbeck
 
 
 def make_cov(N: int, seed: int) -> np.ndarray:
@@ -32,12 +32,12 @@ def main(argv=None) -> int:
 
     # warmup
     for _ in range(args.warmup):
-        wiener(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
+        ornstein_uhlenbeck(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
 
     times = []
     for _ in range(args.repeats):
         t0 = time.perf_counter()
-        wiener(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
+        ornstein_uhlenbeck(args.T, N=args.N, steps=args.steps, gap=args.gap, samples=args.samples, covariance=cov)
         times.append(time.perf_counter() - t0)
 
     t = np.array(times)
