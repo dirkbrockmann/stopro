@@ -32,6 +32,7 @@ a.out
 
 __pycache__
 /.eggs/
+*.egg-info/
 
 .coverage
 .pytest_cache
