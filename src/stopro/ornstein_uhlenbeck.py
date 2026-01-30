@@ -1,3 +1,4 @@
+from typing import Literal,Any
 from ._utils import _time_grid, _mixing, _as_vector, _parse_initial_condition, _psd_factor
 import numpy as np
 
@@ -38,24 +39,23 @@ def _taustdevthetasigma(*, N, stdev=1.0, timescale=1.0, theta=None, sigma=None):
 
     return theta, sigma, stdev, timescale
 
-
-
-def ornstein_uhlenbeck(T,
-                       dt=None,
-                       *,
-                       steps=None,
-                       stdev=1,
-                       timescale=1,
-                       N=1,
-                       gap=1,
-                       samples=1,
-                       initial_condition=None,
-                       covariance=None,
-                       mixing_matrix=None,
-                       theta=None,
-                       sigma=None,
-                      ):
-
+def ornstein_uhlenbeck(
+    T: float,
+    dt: float | None = None,
+    *,
+    steps: int | None = None,
+    stdev: float | np.ndarray = 1,
+    timescale: float | np.ndarray = 1,
+    N: int = 1,
+    gap: int = 1,
+    samples: int = 1,
+    initial_condition: None | Literal["stationary"] | np.ndarray = None,
+    covariance: np.ndarray | None = None,
+    mixing_matrix: np.ndarray | None = None,
+    theta: float | np.ndarray | None = None,
+    sigma: float | np.ndarray | None = None,
+    order: Literal["STD", "SDT"] = "STD",
+) -> dict[str, Any]:
     """
     Simulate an (optionally multivariate) Ornstein–Uhlenbeck process on [0, T].
 
@@ -97,17 +97,19 @@ def ornstein_uhlenbeck(T,
     mixing_matrix : array-like (N,M), optional
         Mixing matrix S such that dW = S dV, with independent dV. Implies covariance = S S^T.
 
+    order : {"STD","SDT"}, default="STD"
+        Output array layout for X:
+        - "STD": (samples, time, dim)  [default, plot-friendly]
+        - "SDT": (samples, dim, time)  [legacy]
+
     Returns
     -------
     dict
         Keys include: 'X', 't', 'dt', 'steps', 'savedsteps', 'gap', 'N',
-        'noise_covariance', 'theta', 'sigma', 'stdev', 'timescale', 'initial_condition'.
+        'noise_covariance', 'theta', 'sigma', 'stdev', 'timescale', 'initial_condition', 'order'.
     """
 
-
     dt, steps, t_full = _time_grid(T, dt=dt, steps=steps)
-
-    sqdt = np.sqrt(dt)
 
     gap = int(gap)
     if gap <= 0:
@@ -119,13 +121,16 @@ def ornstein_uhlenbeck(T,
 
     S, covariance, N, M = _mixing(N=N, covariance=covariance, mixing_matrix=mixing_matrix)
 
-    theta, sigma, stdev, timescale = _taustdevthetasigma(N=N, stdev=stdev, timescale=timescale, theta=theta, sigma=sigma)
-    
+    theta, sigma, stdev, timescale = _taustdevthetasigma(
+        N=N, stdev=stdev, timescale=timescale, theta=theta, sigma=sigma
+    )
+
     idx = np.arange(0, steps + 1, gap)
     t = t_full[idx]
     savedsteps = len(t) - 1
-    X = np.zeros((samples, N, savedsteps+1), dtype=float)
 
+    # Internal layout: (samples, dim, time)
+    X = np.zeros((samples, N, savedsteps + 1), dtype=float)
 
     stationary, x0 = _parse_initial_condition(initial_condition, N=N)
     theta = np.asarray(theta, dtype=float)
@@ -164,20 +169,30 @@ def ornstein_uhlenbeck(T,
         for j in range(steps):
             x[:, j + 1] = a * x[:, j] + (Qfac @ np.random.randn(N))
 
-        X[i] = x[:, idx]
-        
+        X[i] = x[:, idx]  # (N, savedsteps+1)
+
+    # Convert once at the boundary
+    if order == "STD":
+        X_out = np.moveaxis(X, 1, 2)  # (samples, dim, time) -> (samples, time, dim)
+    elif order == "SDT":
+        X_out = X
+    else:
+        raise ValueError("order must be 'STD' or 'SDT'")
+
     return {
-            'initial_condition': initial_condition,
-            'stdev': stdev,
-            'timescale': timescale,
-            'sigma': sigma,
-            'theta': theta,
-            'noise_covariance': covariance,
-            'steps': steps,
-            'dt': dt,
-            't': t,
-            'X': X,
-            'gap': gap,
-            'savedsteps': savedsteps,
-            'N': N
-            }
+        "initial_condition": initial_condition,
+        "stdev": stdev,
+        "timescale": timescale,
+        "sigma": sigma,
+        "theta": theta,
+        "noise_covariance": covariance,
+        "steps": steps,
+        "dt": dt,
+        "t": t,
+        "X": X_out,
+        "gap": gap,
+        "savedsteps": savedsteps,
+        "N": N,
+        "order": order,
+    }
+

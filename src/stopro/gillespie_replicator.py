@@ -1,3 +1,5 @@
+from typing import Any, Literal
+
 import numpy as np
 from scipy.special import logsumexp
 
@@ -6,19 +8,20 @@ from .wiener import wiener
 
 
 def gillespie_replicator(
-    T,
-    dt=None,
+    T: float,
+    dt: float | None = None,
     *,
-    steps=None,
-    N=2,
-    mu=1.0,
-    sigma=1.0,
-    initial_condition=None,
-    gap=1,
-    samples=1,
-    covariance=None,
-    mixing_matrix=None,
-):
+    steps: int | None = None,
+    N: int = 2,
+    mu: float | np.ndarray = 1.0,
+    sigma: float | np.ndarray = 1.0,
+    initial_condition: np.ndarray | None = None,
+    gap: int = 1,
+    samples: int = 1,
+    covariance: np.ndarray | None = None,
+    mixing_matrix: np.ndarray | None = None,
+    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+) -> dict[str, Any]:
     """
     Gillespie replicator model (softmax normalization of correlated GBMs).
 
@@ -28,6 +31,11 @@ def gillespie_replicator(
         Y_i(t) = X_i(t) / sum_j X_j(t)
 
     Uses a numerically-stable logsumexp (softmax) normalization.
+
+    order : {"STD","SDT"}, default="STD"
+        Output array layout for X:
+        - "STD": (samples, time, dim)  [default, plot-friendly]
+        - "SDT": (samples, dim, time)  [legacy]
     """
     N = int(N)
     if N < 2:
@@ -49,6 +57,7 @@ def gillespie_replicator(
     sigma = _as_vector(sigma, N, "sigma")
 
     # Correlated Wiener driver on the *returned* grid (gap handled here)
+    # Force wiener to return a known internal layout for this function.
     res_w = wiener(
         T,
         dt,
@@ -58,6 +67,7 @@ def gillespie_replicator(
         samples=samples,
         covariance=covariance,
         mixing_matrix=mixing_matrix,
+        order="SDT",  # (samples, dim, time) for convenient math below
     )
 
     W = res_w["X"]  # (samples, N, K)
@@ -72,14 +82,23 @@ def gillespie_replicator(
     logX = logx0[None, :, None] + drift + noise                      # (samples, N, K)
 
     log_denom = logsumexp(logX, axis=1, keepdims=True)                # (samples, 1, K)
-    Y = np.exp(logX - log_denom)                                      # (samples, N, K)
+    Y_sdt = np.exp(logX - log_denom)                                  # (samples, N, K)
+
+    # Convert once at the boundary
+    if order == "STD":
+        Y_out = np.moveaxis(Y_sdt, 1, 2)  # (samples, dim, time) -> (samples, time, dim)
+    elif order == "SDT":
+        Y_out = Y_sdt
+    else:
+        raise ValueError("order must be 'STD' or 'SDT'")
 
     # Build result dict in the same style as your other processes
     res = dict(res_w)
-    res["X"] = Y
+    res["X"] = Y_out
     res["mu"] = mu
     res["sigma"] = sigma
     res["initial_condition"] = x0
+    res["order"] = order
 
     # Standardize covariance naming (wiener returns 'covariance' in this codebase)
     res["noise_covariance"] = res.get("covariance", None)

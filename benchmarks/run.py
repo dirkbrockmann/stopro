@@ -4,6 +4,7 @@ import argparse
 import importlib
 import pkgutil
 import benchmarks
+from tqdm import tqdm
 
 
 def list_benches() -> list[str]:

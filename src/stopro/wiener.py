@@ -1,17 +1,22 @@
+from typing import Literal,Any
+
 import numpy as np
 
 from ._utils import _time_grid, _mixing
 
-def wiener(T,
-           dt=None,
-           *,
-           steps=None,
-           gap=1,
-           N=1,
-           samples=1,
-           covariance=None,
-           mixing_matrix=None):
 
+def wiener(
+    T: float,
+    dt: float | None = None,
+    *,
+    steps: int | None = None,
+    gap: int = 1,
+    N: int = 1,
+    samples: int = 1,
+    covariance: np.ndarray | None = None,
+    mixing_matrix: np.ndarray | None = None,
+    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+) -> dict[str, Any]:
     """
     Simulate an N-dimensional Wiener process on [0, T].
 
@@ -38,14 +43,18 @@ def wiener(T,
         Covariance of increments. Must be positive semidefinite.
     mixing_matrix : (N,M) array, optional
         Mixing matrix S such that dW = S dV and covariance = S S^T.
+    order : {"STD","SDT"}, default="STD"
+        Output array layout for X:
+        - "STD": (samples, time, dim)  [default, plot-friendly]
+        - "SDT": (samples, dim, time)  [legacy]
 
     Returns
     -------
     dict
         Keys:
-        - 'X': array, shape (samples, N, savedsteps+1)
+        - 'X': array, shape depends on `order`
         - 't': array, shape (savedsteps+1,)
-        - 'dt', 'steps', 'savedsteps', 'N', 'gap', 'covariance'
+        - 'dt', 'steps', 'savedsteps', 'N', 'gap', 'covariance', 'order'
     """
 
     dt, steps, t_full = _time_grid(T, dt=dt, steps=steps)
@@ -58,31 +67,43 @@ def wiener(T,
     if samples <= 0:
         raise ValueError("samples must be a positive integer.")
 
-    S, covariance, N, M = _mixing(N=N, covariance=covariance, mixing_matrix=mixing_matrix)
-    
-   # Single subsampling index used everywhere
+    # Resolve mixing / covariance
+    S, covariance, N, M = _mixing(
+        N=N,
+        covariance=covariance,
+        mixing_matrix=mixing_matrix,
+    )
+
+    # Subsampling index used everywhere
     idx = np.arange(0, steps + 1, gap)
     t = t_full[idx]
     savedsteps = len(t) - 1
 
-    X = np.zeros((samples, N, savedsteps+1), dtype=float)
-    
-    for i in range(samples):
-        with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
-            dw = S @ np.random.randn(M, steps + 1)
-        dw[:, 0] = 0.0
-        W_full = np.sqrt(dt) * np.cumsum(dw, axis=1)   # (N, steps+1)
-        X[i] = W_full[:, idx]
-    
+    # Internal layout: (samples, dim, time)
+    X = np.zeros((samples, N, savedsteps + 1), dtype=float)
 
+    for i in range(samples):
+        dw = S @ np.random.randn(M, steps + 1)
+        dw[:, 0] = 0.0
+        W_full = np.sqrt(dt) * np.cumsum(dw, axis=1)  # (N, steps+1)
+        X[i] = W_full[:, idx]                         # (N, savedsteps+1)
+
+    # Convert once at the boundary
+    if order == "STD":
+        X_out = np.moveaxis(X, 1, 2)  # (samples, dim, time) -> (samples, time, dim)
+    elif order == "SDT":
+        X_out = X
+    else:
+        raise ValueError("order must be 'STD' or 'SDT'")
 
     return {
-        'X': X,
-        't': t,
-        'dt': dt,
-        'steps': steps,
-        'savedsteps': savedsteps,
-        'N': N,
-        'gap': gap,
-        'covariance': covariance,
+        "X": X_out,
+        "t": t,
+        "dt": dt,
+        "steps": steps,
+        "savedsteps": savedsteps,
+        "N": N,
+        "gap": gap,
+        "covariance": covariance,
+        "order": order,
     }

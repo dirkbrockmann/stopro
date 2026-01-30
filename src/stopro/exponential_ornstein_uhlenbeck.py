@@ -1,3 +1,5 @@
+from typing import Any, Literal
+
 import numpy as np
 
 from ._utils import _as_vector
@@ -5,20 +7,21 @@ from .ornstein_uhlenbeck import ornstein_uhlenbeck
 
 
 def exponential_ornstein_uhlenbeck(
-    T,
-    dt=None,
+    T: float,
+    dt: float | None = None,
     *,
-    steps=None,
-    gap=1,
-    N=1,
-    samples=1,
-    mean=1.0,
-    coeff_var=1.0,
-    timescale=1.0,
-    initial_condition=None,
-    covariance=None,
-    mixing_matrix=None,
-):
+    steps: int | None = None,
+    gap: int = 1,
+    N: int = 1,
+    samples: int = 1,
+    mean: float | np.ndarray = 1.0,
+    coeff_var: float | np.ndarray = 1.0,
+    timescale: float | np.ndarray = 1.0,
+    initial_condition: None | Literal["stationary"] | np.ndarray = None,
+    covariance: np.ndarray | None = None,
+    mixing_matrix: np.ndarray | None = None,
+    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+) -> dict[str, Any]:
     """
     Simulate an exponential Ornstein–Uhlenbeck (lognormal OU) process on [0, T].
 
@@ -33,11 +36,16 @@ def exponential_ornstein_uhlenbeck(
     Provide exactly one of `dt` or `steps`. Noise correlation can be specified via
     `covariance` or `mixing_matrix` (mutually exclusive). Use `gap>1` to subsample.
 
+    order : {"STD","SDT"}, default="STD"
+        Output array layout for X:
+        - "STD": (samples, time, dim)  [default, plot-friendly]
+        - "SDT": (samples, dim, time)  [legacy]
+
     Returns
     -------
     dict
         The return dict from `ornstein_uhlenbeck`, with 'X' replaced by the
-        exponential transform and added keys: 'mean', 'coeff_var', 'A', 'B'.
+        exponential transform and added keys: 'mean', 'coeff_var', 'A', 'B', 'order'.
     """
     N = int(N)
     if N <= 0:
@@ -59,6 +67,7 @@ def exponential_ornstein_uhlenbeck(
     B = np.sqrt(np.log(1.0 + coeff_var**2))
 
     # Underlying OU: keep stationary stdev=1 so A/B calibration is correct.
+    # Force OU to return SDT for internal convenience; convert once at the boundary.
     res = ornstein_uhlenbeck(
         T,
         dt,
@@ -71,13 +80,24 @@ def exponential_ornstein_uhlenbeck(
         timescale=timescale,
         covariance=covariance,
         mixing_matrix=mixing_matrix,
+        order="SDT",
     )
 
     Z = res["X"]  # (samples, N, K)
-    res["X"] = A[None, :, None] * np.exp(B[None, :, None] * Z)
+    X_sdt = A[None, :, None] * np.exp(B[None, :, None] * Z)  # (samples, N, K)
 
+    # Convert once at the boundary
+    if order == "STD":
+        X_out = np.moveaxis(X_sdt, 1, 2)  # (samples, dim, time) -> (samples, time, dim)
+    elif order == "SDT":
+        X_out = X_sdt
+    else:
+        raise ValueError("order must be 'STD' or 'SDT'")
+
+    res["X"] = X_out
     res["mean"] = mean
     res["coeff_var"] = coeff_var
     res["A"] = A
     res["B"] = B
+    res["order"] = order
     return res

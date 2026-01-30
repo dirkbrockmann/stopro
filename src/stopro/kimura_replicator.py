@@ -1,20 +1,25 @@
-from ._utils import _simplex_initial_condition, _time_grid, _mixing, _as_vector
+from typing import Literal,Any
+
 import numpy as np
+
+from ._utils import _time_grid, _mixing, _as_vector, _simplex_initial_condition  
 
 
 def kimura_replicator(
-                T,
-                dt=None,
-                *,
-                steps=None,
-                N=2,
-                mu=1.0,
-                sigma=1.0,
-                initial_condition=None,
-                gap=1,
-                samples=1,
-                covariance=None,
-                mixing_matrix=None):
+    T: float,
+    dt: float | None = None,
+    *,
+    steps: int | None = None,
+    N: int = 2,
+    mu: float | np.ndarray = 1.0,
+    sigma: float | np.ndarray = 1.0,
+    initial_condition: np.ndarray | None = None,
+    gap: int = 1,
+    samples: int = 1,
+    covariance: np.ndarray | None = None,
+    mixing_matrix: np.ndarray | None = None,
+    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+) -> dict[str, Any]:
     """
     Simulate the (stochastic) Kimura replicator dynamics on the simplex.
 
@@ -47,16 +52,19 @@ def kimura_replicator(
         Covariance of Wiener increments (positive semidefinite).
     mixing_matrix : array-like (N,M), optional
         Mixing matrix S that induces covariance = S S^T.
+    order : {"STD","SDT"}, default="STD"
+        Output array layout for X:
+        - "STD": (samples, time, dim)  [default, plot-friendly]
+        - "SDT": (samples, dim, time)  [legacy]
 
     Returns
     -------
     dict
-        Keys: 'X' (samples, N, savedsteps+1), 't' (savedsteps+1,), 'dt', 'steps',
-        'savedsteps', 'gap', 'N', 'noise_covariance', 'mu', 'sigma', 'initial_condition'.
+        Keys: 'X' (shape depends on `order`), 't' (savedsteps+1,), 'dt', 'steps',
+        'savedsteps', 'gap', 'N', 'noise_covariance', 'mu', 'sigma', 'initial_condition', 'order'.
     """
- 
-    dt, steps, t_full = _time_grid(T, dt=dt, steps=steps)
 
+    dt, steps, t_full = _time_grid(T, dt=dt, steps=steps)
     sqdt = np.sqrt(dt)
 
     gap = int(gap)
@@ -78,39 +86,48 @@ def kimura_replicator(
     mu = _as_vector(mu, N, "mu")
     sigma = _as_vector(sigma, N, "sigma")
 
-
     # subsampling
     idx = np.arange(0, steps + 1, gap)
     t = t_full[idx]
     savedsteps = len(t) - 1
-    
-    X = np.zeros((samples, N, savedsteps+1), dtype=float)
+
+    # Internal layout: (samples, dim, time)
+    X = np.zeros((samples, N, savedsteps + 1), dtype=float)
 
     for i in range(samples):
-        x = np.zeros((N,steps+1))
-        dw = S @ np.random.randn(M, steps+1)
+        x = np.zeros((N, steps + 1), dtype=float)
+        dw = S @ np.random.randn(M, steps + 1)
 
-        x[:,0] = x0
+        x[:, 0] = x0
 
         for j in range(steps):
-            r = mu * dt + sigma * dw[:,j] * sqdt
-            phi = np.sum(r * x[:,j])
-            dx = (r-phi)*x[:,j]
-            x[:,j+1] = x[:,j] + dx
-            x[:,j+1] = np.where(x[:,j+1]<0, 0, x[:,j+1])
+            r = mu * dt + sigma * dw[:, j] * sqdt
+            phi = np.sum(r * x[:, j])
+            dx = (r - phi) * x[:, j]
+            x[:, j + 1] = x[:, j] + dx
+            x[:, j + 1] = np.where(x[:, j + 1] < 0, 0, x[:, j + 1])
 
         X[i] = x[:, idx]
 
+    # Convert once at the boundary
+    if order == "STD":
+        X_out = np.moveaxis(X, 1, 2)  # (samples, dim, time) -> (samples, time, dim)
+    elif order == "SDT":
+        X_out = X
+    else:
+        raise ValueError("order must be 'STD' or 'SDT'")
+
     return {
-            'initial_condition': x0,
-            'mu': mu,
-            'sigma': sigma,
-            'noise_covariance': covariance,
-            'steps': steps,
-            'dt': dt,
-            't': t,
-            'X': X,
-            'gap': gap,
-            'N' : N,
-            'savedsteps': savedsteps,
-            }
+        "initial_condition": x0,
+        "mu": mu,
+        "sigma": sigma,
+        "noise_covariance": covariance,
+        "steps": steps,
+        "dt": dt,
+        "t": t,
+        "X": X_out,
+        "gap": gap,
+        "N": N,
+        "savedsteps": savedsteps,
+        "order": order,
+    }

@@ -1,3 +1,5 @@
+from typing import Any, Literal
+
 import numpy as np
 from scipy.special import logsumexp
 
@@ -6,20 +8,21 @@ from .integrated_ornstein_uhlenbeck import integrated_ornstein_uhlenbeck
 
 
 def colored_replicator(
-    T,
-    dt=None,
+    T: float,
+    dt: float | None = None,
     *,
-    steps=None,
-    N=2,
-    mu=1.0,
-    sigma=1.0,
-    tau=1.0,
-    initial_condition=None,
-    gap=1,
-    samples=1,
-    covariance=None,
-    mixing_matrix=None,
-):
+    steps: int | None = None,
+    N: int = 2,
+    mu: float | np.ndarray = 1.0,
+    sigma: float | np.ndarray = 1.0,
+    tau: float | np.ndarray = 1.0,
+    initial_condition: np.ndarray | None = None,
+    gap: int = 1,
+    samples: int = 1,
+    covariance: np.ndarray | None = None,
+    mixing_matrix: np.ndarray | None = None,
+    order: Literal["STD", "SDT"] = "STD",
+) -> dict[str, Any]:
     r"""
     Simulate the colored stochastic replicator (softmax-normalized colored log-process).
 
@@ -36,12 +39,17 @@ def colored_replicator(
     The underlying OU Z is started at zero (not stationary) to make comparisons to
     Wiener-driven models consistent as tau -> 0.
 
+    order : {"STD","SDT"}, default="STD"
+        Output array layout for X:
+        - "STD": (samples, time, dim)  [default, plot-friendly]
+        - "SDT": (samples, dim, time)  [legacy]
+
     Returns
     -------
     dict with keys including:
-      - "X": (samples, N, K) replicator trajectory on the saved grid
+      - "X": shape depends on `order` (replicator trajectory on the saved grid)
       - "t": (K,) time grid (subsampled by gap)
-      - plus metadata from integrated_ornstein_uhlenbeck, and "mu","sigma","tau","initial_condition"
+      - plus metadata from integrated_ornstein_uhlenbeck, and "mu","sigma","tau","initial_condition","order"
     """
     N = int(N)
     if N < 2:
@@ -70,6 +78,7 @@ def colored_replicator(
 
     # I(t) = ∫ Z ds (computed on fine grid internally; returned on gap-grid)
     # We intentionally start OU at zero for comparability (initial_condition=None).
+    # Force SDT internally for the component-centric math; convert once at the boundary.
     res_I = integrated_ornstein_uhlenbeck(
         T,
         dt,
@@ -82,6 +91,7 @@ def colored_replicator(
         initial_condition=None,
         covariance=covariance,
         mixing_matrix=mixing_matrix,
+        order="SDT",
     )
 
     I = res_I["X"]  # (samples, N, K)
@@ -99,12 +109,21 @@ def colored_replicator(
     )  # (samples, N, K)
 
     log_denom = logsumexp(logX, axis=1, keepdims=True)  # (samples, 1, K)
-    Y = np.exp(logX - log_denom)                        # (samples, N, K)
+    Y_sdt = np.exp(logX - log_denom)                    # (samples, N, K)
+
+    # Convert once at the boundary
+    if order == "STD":
+        Y_out = np.moveaxis(Y_sdt, 1, 2)  # (samples, dim, time) -> (samples, time, dim)
+    elif order == "SDT":
+        Y_out = Y_sdt
+    else:
+        raise ValueError("order must be 'STD' or 'SDT'")
 
     res = dict(res_I)
-    res["X"] = Y
+    res["X"] = Y_out
     res["mu"] = mu
     res["sigma"] = sigma
     res["tau"] = tau
     res["initial_condition"] = x0
+    res["order"] = order
     return res

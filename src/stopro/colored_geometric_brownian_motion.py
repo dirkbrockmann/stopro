@@ -1,3 +1,5 @@
+from typing import Any, Literal
+
 import numpy as np
 
 from ._utils import _as_vector
@@ -5,20 +7,21 @@ from .integrated_ornstein_uhlenbeck import integrated_ornstein_uhlenbeck
 
 
 def colored_geometric_brownian_motion(
-    T,
-    dt=None,
+    T: float,
+    dt: float | None = None,
     *,
-    steps=None,
-    gap=1,
-    N=1,
-    samples=1,
-    mu=1.0,
-    sigma=1.0,
-    tau=1.0,
-    initial_condition=None,
-    covariance=None,
-    mixing_matrix=None,
-):
+    steps: int | None = None,
+    gap: int = 1,
+    N: int = 1,
+    samples: int = 1,
+    mu: float | np.ndarray = 1.0,
+    sigma: float | np.ndarray = 1.0,
+    tau: float = 1.0,
+    initial_condition: np.ndarray | None = None,
+    covariance: np.ndarray | None = None,
+    mixing_matrix: np.ndarray | None = None,
+    order: Literal["STD", "SDT"] = "STD",
+) -> dict[str, Any]:
     """
     Simulate multivariate colored geometric Brownian motion (cGBM) on [0, T].
 
@@ -30,6 +33,11 @@ def colored_geometric_brownian_motion(
 
     Provide exactly one of `dt` or `steps`. Noise correlation can be specified via
     `covariance` or `mixing_matrix` (mutually exclusive). Use `gap>1` to subsample.
+
+    order : {"STD","SDT"}, default="STD"
+        Output array layout for X:
+        - "STD": (samples, time, dim)  [default, plot-friendly]
+        - "SDT": (samples, dim, time)  [legacy]
     """
     tau = float(tau)
     if tau <= 0:
@@ -43,6 +51,7 @@ def colored_geometric_brownian_motion(
     # which implies stationary stdev(Z) = 1/sqrt(2*tau).
     stdev_z = 1.0 / np.sqrt(2.0 * tau)
 
+    # Integrated OU: force SDT internally for component-wise exp formula below
     res_I = integrated_ornstein_uhlenbeck(
         T,
         dt,
@@ -55,6 +64,7 @@ def colored_geometric_brownian_motion(
         initial_condition="stationary",
         covariance=covariance,
         mixing_matrix=mixing_matrix,
+        order="SDT",
     )
 
     I = res_I["X"]  # (samples, N, K) = ∫_0^t Z(s) ds (approx.)
@@ -71,11 +81,20 @@ def colored_geometric_brownian_motion(
 
     # X_i(t) = x0_i * exp(mu_i t + sigma_i I_i(t))
     tt = t[None, None, :]  # (1, 1, K)
-    X = x0[None, :, None] * np.exp(mu[None, :, None] * tt + sigma[None, :, None] * I)
+    X_sdt = x0[None, :, None] * np.exp(mu[None, :, None] * tt + sigma[None, :, None] * I)
 
-    res_I["X"] = X
+    # Convert once at the boundary
+    if order == "STD":
+        X_out = np.moveaxis(X_sdt, 1, 2)  # (samples, dim, time) -> (samples, time, dim)
+    elif order == "SDT":
+        X_out = X_sdt
+    else:
+        raise ValueError("order must be 'STD' or 'SDT'")
+
+    res_I["X"] = X_out
     res_I["mu"] = mu
     res_I["sigma"] = sigma
     res_I["tau"] = tau
     res_I["initial_condition"] = x0
+    res_I["order"] = order
     return res_I
