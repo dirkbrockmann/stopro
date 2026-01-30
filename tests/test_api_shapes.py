@@ -7,7 +7,7 @@ def test_wiener_shapes_and_time_grid_consistency():
     X = res["X"]
     t = res["t"]
 
-    assert X.shape == (3, 2, len(t))
+    assert X.shape == (3, len(t), 2)
     assert np.isclose(t[0], 0.0)
     assert np.isclose(t[-1], 1.0)
 
@@ -17,6 +17,6 @@ def test_ou_shapes():
     X = res["X"]
     t = res["t"]
 
-    assert X.shape == (2, 4, len(t))
+    assert X.shape == (2, len(t), 4)
     assert np.isclose(t[0], 0.0)
     assert np.isclose(t[-1], 1.0)
