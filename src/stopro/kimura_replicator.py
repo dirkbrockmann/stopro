@@ -1,3 +1,4 @@
+from random import seed
 from typing import Literal,Any
 
 import numpy as np
@@ -18,7 +19,8 @@ def kimura_replicator(
     samples: int = 1,
     covariance: np.ndarray | None = None,
     mixing_matrix: np.ndarray | None = None,
-    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time),
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Simulate the (stochastic) Kimura replicator dynamics on the simplex.
@@ -56,6 +58,8 @@ def kimura_replicator(
         Output array layout for X:
         - "STD": (samples, time, dim)  [default, plot-friendly]
         - "SDT": (samples, dim, time)  [legacy]
+    seed : int, optional
+        Seed for reproducible randomness (seeds NumPy global RNG).
 
     Returns
     -------
@@ -63,6 +67,9 @@ def kimura_replicator(
         Keys: 'X' (shape depends on `order`), 't' (savedsteps+1,), 'dt', 'steps',
         'savedsteps', 'gap', 'N', 'noise_covariance', 'mu', 'sigma', 'initial_condition', 'order'.
     """
+
+    if seed is not None:
+        np.random.seed(seed)
 
     dt, steps, t_full = _time_grid(T, dt=dt, steps=steps)
     sqdt = np.sqrt(dt)
@@ -130,4 +137,5 @@ def kimura_replicator(
         "N": N,
         "savedsteps": savedsteps,
         "order": order,
+        "seed": seed,
     }

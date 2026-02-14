@@ -20,6 +20,7 @@ def white_replicator(
     covariance: np.ndarray | None = None,
     mixing_matrix: np.ndarray | None = None,
     order: Literal["STD", "SDT"] = "STD",
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     White replicator model.
@@ -51,4 +52,5 @@ def white_replicator(
         covariance=covariance,
         mixing_matrix=mixing_matrix,
         order=order,
+        seed=seed,
     )

@@ -21,6 +21,7 @@ def colored_geometric_brownian_motion(
     covariance: np.ndarray | None = None,
     mixing_matrix: np.ndarray | None = None,
     order: Literal["STD", "SDT"] = "STD",
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Simulate multivariate colored geometric Brownian motion (cGBM) on [0, T].
@@ -65,7 +66,8 @@ def colored_geometric_brownian_motion(
         covariance=covariance,
         mixing_matrix=mixing_matrix,
         order="SDT",
-    )
+        seed=seed,
+    )   
 
     I = res_I["X"]  # (samples, N, K) = ∫_0^t Z(s) ds (approx.)
     t = res_I["t"]  # (K,)

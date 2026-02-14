@@ -22,6 +22,7 @@ def colored_replicator(
     covariance: np.ndarray | None = None,
     mixing_matrix: np.ndarray | None = None,
     order: Literal["STD", "SDT"] = "STD",
+    seed: int | None = None,
 ) -> dict[str, Any]:
     r"""
     Simulate the colored stochastic replicator (softmax-normalized colored log-process).
@@ -92,6 +93,7 @@ def colored_replicator(
         covariance=covariance,
         mixing_matrix=mixing_matrix,
         order="SDT",
+        seed=seed,  # (samples, dim, time) for convenient math below
     )
 
     I = res_I["X"]  # (samples, N, K)

@@ -55,6 +55,7 @@ def ornstein_uhlenbeck(
     theta: float | np.ndarray | None = None,
     sigma: float | np.ndarray | None = None,
     order: Literal["STD", "SDT"] = "STD",
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Simulate an (optionally multivariate) Ornstein–Uhlenbeck process on [0, T].
@@ -101,6 +102,9 @@ def ornstein_uhlenbeck(
         Output array layout for X:
         - "STD": (samples, time, dim)  [default, plot-friendly]
         - "SDT": (samples, dim, time)  [legacy]
+    
+    seed : int, optional
+        Seed for reproducible randomness (seeds NumPy global RNG).
 
     Returns
     -------
@@ -110,6 +114,9 @@ def ornstein_uhlenbeck(
     """
 
     dt, steps, t_full = _time_grid(T, dt=dt, steps=steps)
+
+    if seed is not None:
+        np.random.seed(seed)
 
     gap = int(gap)
     if gap <= 0:
@@ -194,5 +201,6 @@ def ornstein_uhlenbeck(
         "savedsteps": savedsteps,
         "N": N,
         "order": order,
+        "seed": seed,
     }
 

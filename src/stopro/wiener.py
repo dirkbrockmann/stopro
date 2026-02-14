@@ -1,4 +1,4 @@
-from typing import Literal,Any
+from typing import Literal, Any
 
 import numpy as np
 
@@ -16,6 +16,7 @@ def wiener(
     covariance: np.ndarray | None = None,
     mixing_matrix: np.ndarray | None = None,
     order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Simulate an N-dimensional Wiener process on [0, T].
@@ -24,6 +25,7 @@ def wiener(
     -----
     - Uses a uniform grid. If `steps` is provided, it overrides `dt` via `dt = T/steps`.
     - Set `gap>1` to return every `gap`-th time point.
+    - If `seed` is provided, seeds NumPy's *global* RNG via `np.random.seed(seed)`.
 
     Parameters
     ----------
@@ -47,6 +49,8 @@ def wiener(
         Output array layout for X:
         - "STD": (samples, time, dim)  [default, plot-friendly]
         - "SDT": (samples, dim, time)  [legacy]
+    seed : int, optional
+        Seed for reproducible randomness (seeds NumPy global RNG).
 
     Returns
     -------
@@ -56,6 +60,9 @@ def wiener(
         - 't': array, shape (savedsteps+1,)
         - 'dt', 'steps', 'savedsteps', 'N', 'gap', 'covariance', 'order'
     """
+
+    if seed is not None:
+        np.random.seed(seed)
 
     dt, steps, t_full = _time_grid(T, dt=dt, steps=steps)
 
@@ -83,10 +90,10 @@ def wiener(
     X = np.zeros((samples, N, savedsteps + 1), dtype=float)
 
     for i in range(samples):
-        dw = S @ np.random.randn(M, steps + 1)
+        dw = S @ np.random.randn(M, steps + 1)          # (N, steps+1)
         dw[:, 0] = 0.0
-        W_full = np.sqrt(dt) * np.cumsum(dw, axis=1)  # (N, steps+1)
-        X[i] = W_full[:, idx]                         # (N, savedsteps+1)
+        W_full = np.sqrt(dt) * np.cumsum(dw, axis=1)    # (N, steps+1)
+        X[i] = W_full[:, idx]                           # (N, savedsteps+1)
 
     # Convert once at the boundary
     if order == "STD":
@@ -106,4 +113,5 @@ def wiener(
         "gap": gap,
         "covariance": covariance,
         "order": order,
+        "seed": seed,
     }

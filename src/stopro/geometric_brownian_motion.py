@@ -19,7 +19,8 @@ def geometric_brownian_motion(
     initial_condition: np.ndarray | None = None,
     covariance: np.ndarray | None = None,
     mixing_matrix: np.ndarray | None = None,
-    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time),
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Simulate (possibly multivariate) geometric Brownian motion (GBM) on [0, T].
@@ -54,6 +55,7 @@ def geometric_brownian_motion(
         covariance=covariance,
         mixing_matrix=mixing_matrix,
         order="SDT",  # (samples, dim, time)
+        seed=seed,
     )
 
     W = res_w["X"]  # (samples, N, K)
@@ -97,4 +99,5 @@ def geometric_brownian_motion(
         "initial_condition": x0,
         "noise_covariance": res_w.get("covariance", None),
         "order": order,
+        "seed": seed,
     }

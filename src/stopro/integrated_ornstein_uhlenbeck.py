@@ -20,7 +20,8 @@ def integrated_ornstein_uhlenbeck(
     mixing_matrix: np.ndarray | None = None,
     theta: float | np.ndarray | None = None,
     sigma: float | np.ndarray | None = None,
-    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time),
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Simulate the time-integral of an Ornstein–Uhlenbeck process on [0, T].
@@ -38,6 +39,9 @@ def integrated_ornstein_uhlenbeck(
         - "STD": (samples, time, dim)  [default, plot-friendly]
         - "SDT": (samples, dim, time)  [legacy]
     """
+
+    if seed is not None:
+        np.random.seed(seed)
 
     gap = int(gap)
     if gap <= 0:
@@ -58,7 +62,8 @@ def integrated_ornstein_uhlenbeck(
         mixing_matrix=mixing_matrix,
         theta=theta,
         sigma=sigma,
-        order="STD",  # force known layout
+        order="STD",
+        seed=seed,  # force known layout
     )
 
     t_full = res["t"]        # (steps+1,)

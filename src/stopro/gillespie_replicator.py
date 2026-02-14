@@ -20,7 +20,8 @@ def gillespie_replicator(
     samples: int = 1,
     covariance: np.ndarray | None = None,
     mixing_matrix: np.ndarray | None = None,
-    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time)
+    order: Literal["STD", "SDT"] = "STD",  # "STD" (samples, time, dim) or "SDT" (samples, dim, time),
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Gillespie replicator model (softmax normalization of correlated GBMs).
@@ -67,7 +68,8 @@ def gillespie_replicator(
         samples=samples,
         covariance=covariance,
         mixing_matrix=mixing_matrix,
-        order="SDT",  # (samples, dim, time) for convenient math below
+        order="SDT",
+        seed=seed,  # (samples, dim, time) for convenient math below
     )
 
     W = res_w["X"]  # (samples, N, K)
