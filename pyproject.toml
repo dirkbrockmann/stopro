@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "stopro"
-version = "0.7.0"
+version = "0.8.0"
 description = "Stochastic processes in Python"
 readme = "README.md"
 
