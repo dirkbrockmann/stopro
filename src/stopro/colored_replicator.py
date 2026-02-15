@@ -89,7 +89,7 @@ def colored_replicator(
         samples=samples,
         stdev=stdev_z,
         timescale=tau,
-        initial_condition=None,
+        initial_condition="stationary",
         covariance=covariance,
         mixing_matrix=mixing_matrix,
         order="SDT",
